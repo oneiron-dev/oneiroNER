@@ -1,0 +1,20 @@
+# Data symlinks and raw datasets (read-only HF cache)
+data/raw/
+
+# Processed data goes through data/labeled/ HF repo, not main repo
+data/processed/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# OS
+.DS_Store
+*.swp
+
+# State tracking
+configs/.task_state.json
