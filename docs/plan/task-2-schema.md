@@ -20,7 +20,7 @@ Every training example is `(text, query_types) → entities`. The `query_types` 
 To preserve type diversity for open-vocab training AND ensure the model has seen Oneiron canonical type strings enough times:
 
 - **View A (raw)**: `type` = source label (PER, LOC, 人名, etc.), `original_type` = same. Every example gets View A. Preserves diversity for open-vocab generalization.
-- **View B (canonical)**: `type` = Oneiron canonical label (PERSON, PLACE, etc.), `original_type` = source label. Generated only for entities whose source type maps to an Oneiron canonical type (via `type_mapping.json` from [Task 3](task-3-mapping.md)). Source suffixed with `_canonical`. `query_types` use canonical strings.
+- **View B (canonical)**: `type` = Oneiron canonical label (PERSON, PLACE, etc.), `original_type` = source label. Generated only for entities whose source type maps to an Oneiron canonical type (via `type_mapping_train.json` from [Task 3](task-3-mapping.md)). Source suffixed with `_canonical`. `query_types` use canonical strings.
 - Long-tail types with no Oneiron mapping: View A only.
 
 ### View A Example (passage)
@@ -81,8 +81,8 @@ To preserve type diversity for open-vocab training AND ensure the model has seen
   ],
   "query_types": ["PER", "LOC", "DATE", "ORG"],
   "entities": [
-    {"surface": "Sarah", "type": "PER", "original_type": "PER", "turn_index": 0, "start": 14, "end": 19},
-    {"surface": "Kyoto", "type": "LOC", "original_type": "LOC", "turn_index": 0, "start": 28, "end": 33},
+    {"surface": "Sarah", "type": "PER", "original_type": "PER", "turn_index": 0, "start": 13, "end": 18},
+    {"surface": "Kyoto", "type": "LOC", "original_type": "LOC", "turn_index": 0, "start": 27, "end": 32},
     {"surface": "last Tuesday", "type": "DATE", "original_type": "DATE", "turn_index": 1, "start": 6, "end": 18}
   ]
 }
