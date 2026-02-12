@@ -42,7 +42,7 @@
           "Person"
         ]
       },
-      "span_info": "pos field [start, end] — character offsets",
+      "span_info": "pos field [start, end] in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos.",
       "confidence": "synthetic-gold",
       "license": "MIT",
       "status": "needs_extraction",
@@ -77,7 +77,7 @@
           "Chemical"
         ]
       },
-      "span_info": "pos field [start, end] — character offsets",
+      "span_info": "pos field [start, end] in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos.",
       "confidence": "synthetic-gold",
       "license": "MIT",
       "status": "needs_extraction",
@@ -88,7 +88,7 @@
       "local_path": "data/raw/B2NERD",
       "format": "json_zipped",
       "size": {
-        "total": 4262938,
+        "total": 4261663,
         "en": 2349082,
         "zh": 1913856
       },
@@ -111,11 +111,11 @@
           "Chemical"
         ]
       },
-      "span_info": "pos field [start, end] — character offsets",
+      "span_info": "pos field [start, end] in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos.",
       "confidence": "synthetic",
       "license": "varies_by_source",
       "status": "needs_extraction",
-      "notes": "Combines B2NERD_all/ (~2.1M standardized) and B2NERD_raw/ (~2.2M raw) from zip. README states ~1.4M for standardized subset. Reserve for v2 type coverage gaps."
+      "notes": "Combines B2NERD_all/ (2,102,304) and B2NERD_raw/ (2,159,359) from zip. Counts include train/dev/test JSON files only (excluding metadata). Reserve for v2 type coverage gaps."
     },
     "open_ner_standardized": {
       "hf_id": "bltlab/open-ner-standardized",
@@ -233,7 +233,7 @@
         "zul"
       ],
       "entity_types": {
-        "count": 43,
+        "count": 60,
         "sample": [
           "LOC",
           "ORG",
@@ -247,21 +247,31 @@
           "CREATIVE_WORK",
           "FACILITY",
           "LAW",
-          "LANGUAGE",
+          "LANG",
           "NORP",
           "QUANTITY",
           "TIME",
           "CARDINAL",
           "MONEY",
           "PERCENT",
-          "ORDINAL"
+          "ORDINAL",
+          "PER-DERIV",
+          "LOC-DERIV",
+          "ORG-DERIV",
+          "MISC-DERIV",
+          "GPE-LOC",
+          "GPE-ORG",
+          "DESIGNATION",
+          "DISEASE",
+          "TITLE_AFFIX",
+          "RELIGION"
         ]
       },
       "span_info": "BIO tags via ClassLabel — numeric codes mapped to B-TYPE/I-TYPE/O",
       "confidence": "gold",
       "license": "mixed",
       "status": "ready",
-      "notes": "Multi-dataset collection with 66 configs across 52 languages. 43 entity types total. BIO format with HF ClassLabel feature. Total includes train (624,532) + dev (75,416) + test (130,786) across all configs."
+      "notes": "Multi-dataset collection with 66 configs across 52 languages. 60 entity types total (115 BIO labels including B-/I- prefixes). BIO format with HF ClassLabel feature. Total includes train (624,532) + dev (75,416) + test (130,786) across all configs."
     },
     "open_ner_core_types": {
       "hf_id": "bltlab/open-ner-core-types",
@@ -590,7 +600,7 @@
         "zsm"
       ],
       "entity_types": {
-        "count": 3978,
+        "count": 235181,
         "sample": [
           "abbreviation",
           "abstract concept",
@@ -618,7 +628,7 @@
       "confidence": "synthetic-gold",
       "license": "CC-BY-4.0",
       "status": "ready",
-      "notes": "93 languages, 3978 entity types. One parquet file per language. char_spans has list of {start, end, label} dicts. Very fine-grained types (e.g. 'location / theater')."
+      "notes": "93 languages, 235,181 unique entity types across all language files. Extreme granularity: labels include hierarchical paths (e.g. 'location / city'), context-specific values, and multilingual labels in native scripts. One parquet file per language. char_spans has list of {start, end, label} dicts."
     },
     "klue_ner": {
       "hf_id": "klue/klue",
@@ -754,7 +764,7 @@
         "zh"
       ],
       "entity_types": {
-        "count": 69,
+        "count": 72,
         "sample": [
           "Abstract",
           "BANK",
@@ -775,14 +785,17 @@
           "NAME",
           "ORG",
           "ORG.NAM",
-          "ORG.NOM"
+          "ORG.NOM",
+          "TELEVISION",
+          "疾病和诊断",
+          "解剖部位"
         ]
       },
       "span_info": "entity_label + start_idx/end_idx/entity_text fields — character offsets. Some null values present.",
       "confidence": "gold",
       "license": "Apache-2.0",
       "status": "ready",
-      "notes": "12 Chinese NER subsets aggregated. 69 entity types including domain-specific (medical, financial). Has null values in some entity fields. entity_label field (not entity_type)."
+      "notes": "12 Chinese NER subsets aggregated. 72 entity types from: bank (4), ccfbdci (4), ccks2019 (6), cluener (10), cmeee (9), dlner (7), e_commerce (4), finance_sina (8), msra (3), nlpcc_2018 (15), weibo (7), youku (3). Includes domain-specific types (medical, financial). Has null values in some entity fields. entity_label field (not entity_type)."
     },
     "stockmark_ner_ja": {
       "hf_id": "stockmark/ner-wikipedia-dataset",
