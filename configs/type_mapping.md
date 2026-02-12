@@ -270,7 +270,9 @@ If no heuristic matches and the type is not in the static mapping:
 
 ### Coverage note
 
-For eval scoring, the heuristics are primarily a safety net. All eval dataset types (MultiCoNER test, KLUE val, open_ner test, stockmark, b2nerd_test) have finite type sets that are fully covered by the static eval mapping. The heuristics only matter for fiNERweb data if it ever enters evaluation.
+Datasets with finite, small type sets are fully covered by the static eval mapping: MultiCoNER (33 types), KLUE (6), stockmark (8), open_ner (60), chinese_ner_sft (72). For these, heuristics are never needed.
+
+B2NERD has 492 types, of which only ~15 are statically mapped. The remaining ~477 types **require runtime heuristics** for eval scoring. Task 5 (`eval_ner.py`) must implement the heuristic rules above for correct B2NERD evaluation. fiNERweb (235K types) similarly depends on heuristics for any types beyond the ~13 statically mapped.
 
 ## Adding New Mappings
 

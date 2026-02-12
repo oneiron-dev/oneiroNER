@@ -3,9 +3,30 @@
 
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 CONFIGS = Path(__file__).resolve().parent.parent / "configs"
+
+
+def load_json_check_dupes(path):
+    """Load JSON and detect duplicate keys (json.load silently takes last)."""
+    dupes = []
+    with open(path) as f:
+        raw = f.read()
+    seen = Counter()
+
+    def pair_hook(pairs):
+        d = {}
+        for k, v in pairs:
+            seen[k] += 1
+            if seen[k] > 1:
+                dupes.append(k)
+            d[k] = v
+        return d
+
+    result = json.loads(raw, object_pairs_hook=pair_hook)
+    return result, dupes
 
 TRAIN_CANONICAL = {"PERSON", "PLACE", "ORG", "DATE", "EMOTION"}
 EVAL_CANONICAL = TRAIN_CANONICAL | {"ACTIVITY", "OTHER"}
@@ -65,10 +86,13 @@ def main():
     train_path = CONFIGS / "type_mapping_train.json"
     eval_path = CONFIGS / "type_mapping_eval.json"
 
-    with open(train_path) as f:
-        train = json.load(f)
-    with open(eval_path) as f:
-        eval_map = json.load(f)
+    train, train_dupes = load_json_check_dupes(train_path)
+    eval_map, eval_dupes = load_json_check_dupes(eval_path)
+
+    for k in train_dupes:
+        errors.append(f"Train: duplicate key '{k}'")
+    for k in eval_dupes:
+        errors.append(f"Eval: duplicate key '{k}'")
 
     print(f"Train entries: {len(train)}")
     print(f"Eval entries:  {len(eval_map)}")
@@ -88,7 +112,7 @@ def main():
         if v in ("OTHER", "ACTIVITY"):
             errors.append(f"Train contains forbidden canonical type: '{k}' → '{v}'")
 
-    # Train is strict subset of eval
+    # Train is proper subset of eval (train ⊂ eval)
     for k, v in train.items():
         if k not in eval_map:
             errors.append(f"Train key '{k}' missing from eval")
@@ -96,6 +120,10 @@ def main():
             errors.append(
                 f"Train/eval mismatch for '{k}': train='{v}', eval='{eval_map[k]}'"
             )
+    if len(train) >= len(eval_map):
+        errors.append(
+            f"Train ({len(train)}) must be smaller than eval ({len(eval_map)})"
+        )
 
     # Whitespace check
     for label, mapping in [("train", train), ("eval", eval_map)]:
@@ -148,6 +176,25 @@ def main():
     for t in klue_all:
         if t not in eval_map:
             errors.append(f"KLUE type '{t}' missing from eval")
+
+    # Cross-reference with dataset_inventory.json (warn on drift)
+    inv_path = CONFIGS / "dataset_inventory.json"
+    if inv_path.exists():
+        with open(inv_path) as f:
+            inventory = json.load(f)
+        FULLY_COVERED = {
+            "klue_ner": 6,
+            "multiconer_v2": 33,
+            "stockmark_ner_ja": 8,
+        }
+        for ds_name, expected_count in FULLY_COVERED.items():
+            ds = inventory.get("datasets", {}).get(ds_name, {})
+            actual_count = ds.get("entity_types", {}).get("count", 0)
+            if actual_count != expected_count:
+                errors.append(
+                    f"Inventory drift: {ds_name} has {actual_count} types "
+                    f"(expected {expected_count}). Update coverage lists."
+                )
 
     # Distribution
     print("\n--- Train distribution ---")
