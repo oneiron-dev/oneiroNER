@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oneiron-dev/oneiroNER/blob/main/configs/schema.json",
+  "title": "oneiroNER Training Record",
+  "description": "Schema for a single JSONL record in the oneiroNER training data. Supports passage and conversation formats with dual-view (View A raw + View B canonical) typing.",
+  "$defs": {
+    "confidence_tier": {
+      "type": "string",
+      "enum": ["human-gold", "synthetic-gold", "gold", "silver"],
+      "description": "Data quality tier. Ordering for min() during merge: human-gold > synthetic-gold > gold > silver."
+    },
+    "split_value": {
+      "type": "string",
+      "enum": ["train", "val", "eval", "zero_shot_eval"],
+      "description": "Dataset split assignment."
+    },
+    "turn": {
+      "type": "object",
+      "properties": {
+        "speaker": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Speaker identifier (e.g. 'A', 'B', 'Doctor')."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Turn text. Entity start/end offsets are relative to this string."
+        }
+      },
+      "required": ["speaker", "text"],
+      "additionalProperties": false
+    },
+    "entity_base": {
+      "type": "object",
+      "properties": {
+        "surface": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Matched text span. Must equal text[start:end] (code-enforced)."
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "View A: source label. View B: Oneiron canonical label."
+        },
+        "original_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source dataset's verbatim label (always preserved)."
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Start character offset (inclusive)."
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "End character offset (exclusive). Must be > start (code-enforced)."
+        }
+      },
+      "required": ["surface", "type", "original_type", "start", "end"]
+    },
+    "entity_passage": {
+      "allOf": [{ "$ref": "#/$defs/entity_base" }],
+      "unevaluatedProperties": false
+    },
+    "entity_conversation": {
+      "allOf": [{ "$ref": "#/$defs/entity_base" }],
+      "properties": {
+        "turn_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Index into turns[]. start/end are relative to turns[turn_index].text."
+        }
+      },
+      "required": ["turn_index"],
+      "unevaluatedProperties": false
+    }
+  },
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "description": "Schema version. Must be '1.0'."
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source dataset identifier. View B appends '_canonical'."
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique record ID within source. View B appends '_canonical'."
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Language code (e.g. 'en', 'ja', 'ko'). Normalization is code-enforced."
+    },
+    "split": {
+      "$ref": "#/$defs/split_value"
+    },
+    "confidence": {
+      "$ref": "#/$defs/confidence_tier"
+    },
+    "provenance": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Source dataset(s). Multi-element for merged duplicates."
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Passage text. Required for passage format, forbidden for conversation."
+    },
+    "format": {
+      "const": "conversation",
+      "description": "Set to 'conversation' for multi-turn records. Omitted for passages."
+    },
+    "turns": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/turn" },
+      "minItems": 2,
+      "description": "Conversation turns. Required for conversation format, forbidden for passage."
+    },
+    "query_types": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Positive entity types + negative types. 2-5 negatives (code-enforced)."
+    },
+    "entities": {
+      "type": "array",
+      "description": "Extracted entities. Empty array for all-negative examples."
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "source_id",
+    "language",
+    "split",
+    "confidence",
+    "provenance",
+    "query_types",
+    "entities"
+  ],
+  "if": {
+    "properties": {
+      "format": { "const": "conversation" }
+    },
+    "required": ["format"]
+  },
+  "then": {
+    "required": ["turns"],
+    "properties": {
+      "text": false,
+      "entities": {
+        "items": { "$ref": "#/$defs/entity_conversation" }
+      }
+    }
+  },
+  "else": {
+    "required": ["text"],
+    "properties": {
+      "format": false,
+      "turns": false,
+      "entities": {
+        "items": { "$ref": "#/$defs/entity_passage" }
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}
