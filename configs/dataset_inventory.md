@@ -4,23 +4,24 @@
 
 ## Summary
 
-- **11** active datasets (12 total, 1 skipped)
-- **11,411,889** total examples across active datasets
-- **7** ready for processing, **4** need extraction/labeling
+- **12** active datasets (13 total, 1 skipped)
+- **11,678,157** total examples across active datasets
+- **7** ready for processing, **5** need extraction/labeling
 
 ## Datasets
 
 | Dataset | Format | Size | Languages | Types | Span Format | Status |
 |---------|--------|------|-----------|-------|-------------|--------|
-| b2nerd_curated | json_zipped | 679,675 | EN, ZH | 492 | pos field [start, end] | needs_extraction |
+| b2nerd_curated | json_zipped | 388,075 | EN, ZH | 492 | pos field [start, end] | needs_extraction |
+| b2nerd_test | json_zipped | 407,036 | EN, ZH | 492 | pos field [start, end] | needs_extraction |
 | b2nerd_raw | json_zipped | 4,262,938 | EN, ZH | 492 | pos field [start, end] | needs_extraction |
-| open_ner_standardized | parquet_bio | 755,318 | 52 langs | 43 | BIO tags via ClassLabel | ready |
-| open_ner_core_types | parquet_bio | 755,318 | 52 langs | 3 | BIO tags via ClassLabel | ready |
+| open_ner_standardized | parquet_bio | 830,734 | 52 langs | 43 | BIO tags via ClassLabel | ready |
+| open_ner_core_types | parquet_bio | 830,734 | 52 langs | 3 | BIO tags via ClassLabel | ready |
 | finerweb | parquet_spans | 1,995,477 | 93 langs | 3978 | char_spans field with start/end/label objects | ready |
 | klue_ner | parquet_bio | 26,008 | KO | 6 | Numeric BIO tags (0-12) in ner | ready |
 | multiconer_v2 | conll_bio | 2,709,465 | 12 langs | 33 | CoNLL BIO format | ready |
 | chinese_ner_sft | jsonl_spans | 182,293 | ZH | 69 | entity_label + start_idx/end_idx/entity_text fields | ready |
-| stockmark_ner_ja | json_spans | 5,343 | JA | 4 | span field [start, end] | ready |
+| stockmark_ner_ja | json_spans | 5,343 | JA | 8 | span field [start, end] | ready |
 | chatharuhi_roleplaying | jsonl_dialogue | 11,558 | ZH, EN | — | none | needs_labeling |
 | japanese_roleplay_dialogues | jsonl_dialogue | 28,496 | JA | — | none | needs_labeling |
 | nuner | model_checkpoint | N/A | N/A | N/A | N/A | **skip** |
@@ -34,10 +35,22 @@
 - **Format**: json_zipped
 - **License**: MIT
 - **Confidence**: synthetic-gold
-- **Size**: 679,675
+- **Size**: 388,075 (EN: 196,043 + EN_other: 63,800 + ZH: 128,232)
 - **Entity types**: 492 (AI algorithm, Abbreviation, Activity, Agreement, Anatomy, Animal, Award, Band, ...)
 - **Span info**: pos field [start, end] — character offsets
-- **Notes**: Curated subset (B2NERD/ in zip). Each entry has sentence + entities with name/type/pos. Use curated first. 492 unique entity types across EN and ZH.
+- **Notes**: README states ~52K pruned samples from 54 datasets. Actual B2NERD/ train+dev files contain 388K entries (full source datasets before pruning). NER_en_other contains multiconer22 multilingual samples (11 languages).
+
+### b2nerd_test
+
+- **HF ID**: `Umean/B2NERD`
+- **Local path**: `data/raw/B2NERD`
+- **Format**: json_zipped
+- **License**: MIT
+- **Confidence**: synthetic-gold
+- **Size**: 407,036 (EN: 121,156 + EN_other: 55,000 + ZH: 230,880)
+- **Entity types**: 492 (AI algorithm, Abbreviation, Activity, Agreement, Anatomy, Animal, Award, Band, ...)
+- **Span info**: pos field [start, end] — character offsets
+- **Notes**: Test splits from B2NERD/ curated subset. Reserved for evaluation — do not use in training.
 
 ### b2nerd_raw
 
@@ -49,7 +62,7 @@
 - **Size**: 4,262,938
 - **Entity types**: 492 (AI algorithm, Abbreviation, Activity, Agreement, Anatomy, Animal, Award, Band, ...)
 - **Span info**: pos field [start, end] — character offsets
-- **Notes**: Raw subset (B2NERD_raw/ in zip). 4.3M entries. Licensing varies by source dataset. Reserve for v2 type coverage gaps.
+- **Notes**: Combines B2NERD_all/ (~2.1M standardized) and B2NERD_raw/ (~2.2M raw) from zip. README states ~1.4M for standardized subset. Reserve for v2 type coverage gaps.
 
 ### open_ner_standardized
 
@@ -58,10 +71,10 @@
 - **Format**: parquet_bio
 - **License**: mixed
 - **Confidence**: gold
-- **Size**: 755,318 total across 52 languages
+- **Size**: 830,734 total across 52 languages (train: 624,532 + dev: 75,416 + test: 130,786)
 - **Entity types**: 43 (LOC, ORG, PER, GPE, EVENT, DATE, MISC, PRODUCT, ...)
 - **Span info**: BIO tags via ClassLabel — numeric codes mapped to B-TYPE/I-TYPE/O
-- **Notes**: Multi-dataset collection with 66 configs across 52 languages. 43 entity types total. BIO format with HF ClassLabel feature.
+- **Notes**: Multi-dataset collection with 66 configs across 52 languages. 43 entity types total. BIO format with HF ClassLabel feature. Total includes train (624,532) + dev (75,416) + test (130,786) across all configs.
 
 ### open_ner_core_types
 
@@ -70,10 +83,10 @@
 - **Format**: parquet_bio
 - **License**: mixed
 - **Confidence**: gold
-- **Size**: 755,318 total across 52 languages
+- **Size**: 830,734 total across 52 languages (train: 624,532 + dev: 75,416 + test: 130,786)
 - **Entity types**: 3 (LOC, ORG, PER)
 - **Span info**: BIO tags via ClassLabel — numeric codes mapped to B-TYPE/I-TYPE/O
-- **Notes**: Same sentences as open-ner-standardized but mapped to 3 core types only (PER, LOC, ORG). 66 configs, 52 languages.
+- **Notes**: Same sentences as open-ner-standardized but mapped to 3 core types only (PER, LOC, ORG). 66 configs, 52 languages. Total includes train (624,532) + dev (75,416) + test (130,786) across all configs.
 
 ### finerweb
 
@@ -131,9 +144,9 @@
 - **License**: CC-BY-SA-4.0
 - **Confidence**: gold
 - **Size**: 5,343
-- **Entity types**: 4 (人名, 地名, 法人名, その他の組織名)
+- **Entity types**: 8 (人名, 地名, 法人名, その他の組織名, イベント名, 政治的組織名, 施設名, 製品名)
 - **Span info**: span field [start, end] — character offsets. Entities have name/span/type.
-- **Notes**: Japanese Wikipedia NER. 4 types: 人名 (person), 地名 (location), 法人名 (corporation), その他の組織名 (other org). Each entry has curid/text/entities.
+- **Notes**: Japanese Wikipedia NER. 8 types: 人名 (person), 地名 (location), 法人名 (corporation), その他の組織名 (other org), イベント名 (event), 政治的組織名 (political org), 施設名 (facility), 製品名 (product). Each entry has curid/text/entities.
 
 ### chatharuhi_roleplaying
 
@@ -175,11 +188,12 @@
 
 | Dataset | Plan Value | Actual Value | Notes |
 |---------|-----------|--------------|-------|
-| B2NERD curated | 51,907 | 679,675 | Plan counted differently; actual from zip file entry count |
-| B2NERD raw | 1,419,161 | 4,262,938 | Same discrepancy — agent counted all JSON entries in zip |
+| B2NERD curated | 51,907 | 388,075 (train+dev) | README ~52K is pruned count; actual files have full source entries |
+| B2NERD test | — | 407,036 | Test splits separated for evaluation |
+| B2NERD raw | 1,419,161 | 4,262,938 | Covers B2NERD_all/ + B2NERD_raw/ directories |
 | fiNERweb types | 235K+ | 3,978 | Plan overestimated; actual unique label count is 3,978 |
 | multiconer_v2 | ~170K | 2,709,465 | Plan severely underestimated; actual sentence count from # id lines |
-| open-ner-standardized | ~830K | 755,318 | Plan overestimated; actual across all splits |
+| open-ner-standardized | ~830K | 830,734 | Was 755,318 (train only); corrected to include all splits |
 | open-ner types | ~60 | 43 | Actual unique entity types from ClassLabel feature |
-| stockmark types | 8 | 4 | Actual types: 人名, 地名, 法人名, その他の組織名 |
+| stockmark types | 8 | 8 | All 8 types confirmed: 人名, 地名, 法人名, その他の組織名, イベント名, 政治的組織名, 施設名, 製品名 |
 | japanese_roleplay | ~4.3K | 28,496 | Plan counted filtered only; actual includes Original (24K) |
