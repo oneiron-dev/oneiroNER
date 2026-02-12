@@ -76,8 +76,8 @@ The schema is defined in JSON Schema draft 2020-12, enabling `unevaluatedPropert
   ],
   "query_types": ["PER", "LOC", "DATE", "ORG", "EVENT", "PRODUCT"],
   "entities": [
-    {"surface": "Sarah", "type": "PER", "original_type": "PER", "turn_index": 0, "start": 14, "end": 19},
-    {"surface": "Kyoto", "type": "LOC", "original_type": "LOC", "turn_index": 0, "start": 28, "end": 33},
+    {"surface": "Sarah", "type": "PER", "original_type": "PER", "turn_index": 0, "start": 13, "end": 18},
+    {"surface": "Kyoto", "type": "LOC", "original_type": "LOC", "turn_index": 0, "start": 27, "end": 32},
     {"surface": "last Tuesday", "type": "DATE", "original_type": "DATE", "turn_index": 1, "start": 6, "end": 18}
   ]
 }
@@ -104,7 +104,7 @@ The schema is defined in JSON Schema draft 2020-12, enabling `unevaluatedPropert
 
 | Field | Type | Required | Description | Constraints |
 |-------|------|----------|-------------|-------------|
-| `surface` | string | always | Matched text span | minLength: 1. Must equal `text[start:end]` (code-enforced) |
+| `surface` | string | always | Matched text span | minLength: 1. Must equal source text at `[start:end]` (code-enforced) |
 | `type` | string | always | Entity type label | minLength: 1. View A: source label, View B: canonical |
 | `original_type` | string | always | Source dataset's verbatim label | minLength: 1. Always preserved |
 | `start` | integer | always | Start character offset (inclusive) | >= 0 |
@@ -146,7 +146,7 @@ Rules:
 ### View B (canonical)
 - `type` = Oneiron canonical label (e.g. `PERSON`, `PLACE`, `ORGANIZATION`)
 - `original_type` = source dataset's original label (preserved)
-- Generated only when source type maps to a canonical type via `type_mapping.json`
+- Generated only when source type maps to a canonical type via `type_mapping_train.json`
 - `source` suffixed with `_canonical` (e.g. `b2nerd_canonical`)
 - `source_id` suffixed with `_canonical`
 - `query_types` use canonical type strings
@@ -196,7 +196,7 @@ Rules:
 
 | Rule | Reason |
 |------|--------|
-| `text[start:end] == entity.surface` | Span validation |
+| Span matches source text: `text[start:end]` (passage) or `turns[turn_index].text[start:end]` (conversation) | Span validation |
 | `end > start` | Forbid zero-length spans |
 | `turn_index < len(turns)` | Bounds check |
 | `query_types ⊇ positive_types` | All entity types must be queried |

@@ -37,7 +37,7 @@
         "surface": {
           "type": "string",
           "minLength": 1,
-          "description": "Matched text span. Must equal text[start:end] (code-enforced)."
+          "description": "Matched text span. Passage: text[start:end]. Conversation: turns[turn_index].text[start:end]. Code-enforced."
         },
         "type": {
           "type": "string",
