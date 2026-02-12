@@ -16,6 +16,7 @@ outputs:
   - scripts/convert_stockmark.py
   - scripts/lib/*.py
   - data/processed/*.jsonl
+  - configs/training_mix.json
 ---
 
 # Task 4: Conversion Scripts
@@ -87,22 +88,23 @@ def compute_all_spans(text: str, entities: list[dict]) -> list[dict]:
     for ent in entities:
         surface = ent["surface"]
         if surface not in occurrence_map:
-            occurrence_map[surface] = [
-                (m.start(), m.end())
-                for m in re.finditer(re.escape(surface), text)
-            ]
-            # NFKC fallback for CJK full-width/half-width variants
-            if not occurrence_map[surface]:
-                norm_text = normalize(text)
-                norm_surface = normalize(surface)
-                norm_matches = [(m.start(), m.end())
-                    for m in re.finditer(re.escape(norm_surface), norm_text)]
-                if norm_matches:
-                    # Only keep if original text at same offsets matches
-                    occurrence_map[surface] = [
-                        (s, e) for s, e in norm_matches
-                        if text[s:e] == surface
-                    ]
+            # Try exact match first
+            matches = [(m.start(), m.end())
+                for m in re.finditer(re.escape(surface), text)]
+            # If no match, try NFKC-normalized surface in ORIGINAL text
+            if not matches:
+                norm_surface = unicodedata.normalize("NFKC", surface)
+                if norm_surface != surface:
+                    matches = [(m.start(), m.end())
+                        for m in re.finditer(re.escape(norm_surface), text)]
+                # Also try original surface in NFKC-normalized text (length-guarded)
+                if not matches:
+                    norm_text = unicodedata.normalize("NFKC", text)
+                    if len(norm_text) == len(text):  # Safe: offsets transfer 1:1
+                        matches = [(m.start(), m.end())
+                            for m in re.finditer(re.escape(
+                                unicodedata.normalize("NFKC", surface)), norm_text)]
+            occurrence_map[surface] = matches
 
     # Track consumed occurrences
     used: dict[str, int] = defaultdict(int)
@@ -125,6 +127,8 @@ def compute_all_spans(text: str, entities: list[dict]) -> list[dict]:
             log_missing(text, ent)
     return result
 ```
+
+> Offsets must always refer to the original text. Never reuse offsets computed on a different-length normalized string.
 
 For conversation format: same logic scoped to `turns[turn_index].text`.
 
@@ -177,24 +181,39 @@ def detokenize(tokens: list[str], language: str) -> str:
 **Merge-on-duplicate**, not drop-on-duplicate:
 
 - open-ner-standardized (60 types) and open-ner-core-types (3 types) share underlying texts. Dropping one loses supervision signal.
-- Same text hash from same dataset family: merge entities (union), merge query_types, keep provenance list, set confidence to max.
+- Same text hash from same dataset family: merge entities (union), merge query_types, keep provenance list, set confidence to min. (min is the safe default — it won't over-claim quality when filtering or weighting by confidence.)
 - Same text hash from different families: merge entities (union). Same span + different type → keep both.
 - Only DROP true duplicates (same text, same entities, same types).
 - Near-duplicate: MinHash with Jaccard 0.85 on character 5-grams (optional).
 - Log dedup stats.
+
+**After merge, recompute query_types from scratch:**
+```python
+# In dedup.py, after merging entities:
+positive_types = set(ent["type"] for ent in merged_entities)
+negatives = negative_sampler.sample(positive_types, n=random.randint(2, 5))
+merged_example["query_types"] = sorted(positive_types | set(negatives))
+```
+Do NOT union negative lists from source examples. The invariant "2-5 negatives per example" must hold even after dedup merges.
 
 ## Dataset Mixing Caps
 
 ```python
 DATASET_CAPS = {
     "finerweb": 50_000,              # per language
-    "open_ner_standardized": 100_000, # total across all languages
-    "open_ner_core_types": 50_000,    # total
-    "b2nerd": None,                   # keep all
-    "chinese_ner_sft": None,          # keep all (~182K)
-    "multiconer_v2": None,            # keep all (~170K)
-    "klue": None,                     # keep all (~26K)
-    "stockmark": None,                # keep all (~5.3K)
+    "open_ner_standardized": {       # per language
+        "en": 30_000, "ja": 20_000, "zh": 20_000,
+        "ko": 15_000, "other": 15_000,
+    },
+    "open_ner_core_types": {         # per language, halved
+        "en": 15_000, "ja": 10_000, "zh": 10_000,
+        "ko": 7_500, "other": 7_500,
+    },
+    "b2nerd": 52_000,                # curated subset; raw (1.4M) for v2
+    "chinese_ner_sft": None,         # keep all (~182K)
+    "multiconer_v2": None,           # keep all (~170K)
+    "klue": None,                    # keep all (~26K)
+    "stockmark": None,               # keep all (~5.3K)
 }
 ```
 
@@ -202,7 +221,9 @@ v2 TODO: Per-epoch temperature sampling with dataset quotas in `configs/training
 
 ## Train/Val Split (`lib/splitter.py`)
 
-Stratified 95/5 by `language × source`. Applied after dedup.
+Stratified 95/5 by `language × primary_source`. Applied after dedup.
+
+After merge-on-duplicate, `source` may be multi-valued (provenance list). Define `primary_source = provenance[0]` (first/original source). Stratify by `language × primary_source`.
 
 ### Zero-Shot Split Handling
 
@@ -211,15 +232,62 @@ Do NOT move entire examples to `zero_shot_eval`. Instead:
 - Only create dedicated `zero_shot_eval` examples for texts where ALL entities are held-out types.
 - This preserves supervision on non-held-out types that co-occur.
 
-## View B Generation (`convert_all.py`)
+## View A/B Mixing Controls
 
-After all converters emit View A:
-1. Load `type_mapping.json` from [Task 3](task-3-mapping.md).
+- **View B cap**: at most 1:1 ratio with View A (default), configurable via `VIEW_B_RATIO = 1.0` in `convert_all.py`
+- View B negatives sampled from canonical pool only (PERSON, PLACE, DATE, ORG, etc.)
+- View B does NOT count against per-dataset mixing caps (it's augmentation)
+- Configurable in `configs/training_mix.json`
+
+## View B Generation + Split Ordering (`convert_all.py`)
+
+**Critical: Split by text FIRST, then generate View B within each split.** This prevents the same underlying text appearing in train (View A) and val (View B).
+
+Order in `convert_all.py`:
+1. All converters emit View A examples.
+2. Dedup + merge (recompute `query_types` after merge).
+3. **Split** (95/5 stratified by `language × primary_source`).
+4. Generate View B copies **within each split**.
+5. Write `train.jsonl` and `val.jsonl` (both contain View A + View B).
+
+Val.jsonl includes both views to match training distribution.
+
+View B generation per split:
+1. Load `type_mapping_train.json` (high-precision mappings only).
 2. For each example with mappable types, generate a View B copy.
 3. Remap `type` → canonical label, keep `original_type`.
 4. Suffix source with `_canonical`.
-5. Remap `query_types` to canonical strings.
-6. Both View A and View B go into `train.jsonl`.
+5. Remap `query_types` to canonical strings, sample negatives from canonical pool.
+6. Apply `VIEW_B_RATIO` cap (default 1:1 with View A).
+
+## Training Format Conversion (`convert_all.py`)
+
+After View B generation and split, convert schema JSONL to OpenAI chat format for training frameworks (MLX-LM, MS-SWIFT). Reference: ONEIRON-RESEARCH-003.
+
+```python
+def schema_to_chat(example: dict) -> list[dict]:
+    """Convert one schema example into N chat-format training examples (one per query_type)."""
+    chat_examples = []
+    for query_type in example["query_types"]:
+        matching = [e["surface"] for e in example["entities"] if e["type"] == query_type]
+        chat_examples.append({
+            "messages": [
+                {"role": "system", "content": "Extract entities of the requested type from the given text.\nReturn a JSON list of entity surfaces. If none exist, return []."},
+                {"role": "user", "content": f'Text: "{example["text"]}"\nExtract all entities of type: {query_type}'},
+                {"role": "assistant", "content": json.dumps(matching if matching else [])}
+            ]
+        })
+    return chat_examples
+```
+
+For conversation format (Task 6 output):
+```python
+def render_conversation(turns: list[dict]) -> str:
+    return "\n".join(f'{t["speaker"]}: {t["text"]}' for t in turns)
+# Then use rendered text in schema_to_chat
+```
+
+Output: `data/processed/train_chat.jsonl`, `data/processed/val_chat.jsonl`
 
 ## Output Files
 
@@ -228,8 +296,11 @@ After all converters emit View A:
 - `data/processed/finerweb_{lang}.jsonl` (capped 50K each)
 - `data/processed/chinese_ner_sft.jsonl`, `multiconer_v2_{lang}.jsonl`, `klue_ner.jsonl`, `stockmark_ner_ja.jsonl`
 - `data/processed/train.jsonl` (merged, deduped, View A + View B, split=train)
-- `data/processed/val.jsonl` (split=val)
+- `data/processed/val.jsonl` (split=val, includes View A + View B)
+- `data/processed/train_chat.jsonl` (chat format for MLX-LM/MS-SWIFT)
+- `data/processed/val_chat.jsonl` (chat format for MLX-LM/MS-SWIFT)
 - `data/processed/dedup_stats.json`
+- `configs/training_mix.json` (View B ratio, dataset caps)
 
 ## Agent Assignment (3 Opus agents in parallel)
 

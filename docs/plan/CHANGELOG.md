@@ -5,7 +5,57 @@ project: oneiron-ner
 
 # Plan Change Log
 
-## Round 4 (Current)
+## Round 5 — Validated Reviews + LLM Benchmark
+
+Source: 5 independent reviews cross-validated against ONEIRON-RESEARCH-002/003, plus LLM conversationalization benchmark across 6 models × 4 languages.
+
+### Must Fix (8 items)
+
+| # | Fix | Resolution |
+|---|-----|-----------|
+| 1 | NFKC fallback broken | Search width-folded variants in original text. Length-guard normalized-text search. Never reuse offsets from different-length string. |
+| 2 | Zero-shot holdout dependency cyclic | Move holdout selection to Pre-Task 4 (type frequency scan + equivalence classes). Task 5 reads holdout file, doesn't create it. |
+| 3 | Task 3 "eval-only" is a lie | Renamed to "Eval + View B". Split mapping into train (high-precision) and eval (broader) artifacts. |
+| 4 | Dedup merges query_types (explodes negatives) | Recompute query_types from scratch after merge. Don't union negative lists. |
+| 5 | confidence = max is wrong | Changed to confidence = min for merged examples. |
+| 6 | B2NERD stats wrong | Curated: 51,907 (341 types). Raw: 1,419,161. Use curated first, cap at 52K. |
+| 7 | View A/B mixing ratio + split ordering | Split by text first, then generate View B within each split. VIEW_B_RATIO = 1.0 cap. |
+| 8 | Training format conversion missing | Added schema_to_chat() for OpenAI chat format. Output: train_chat.jsonl, val_chat.jsonl. |
+
+### Should Fix (8 items)
+
+| # | Fix | Resolution |
+|---|-----|-----------|
+| 9 | Zero-shot eval set tiny | Reserve 50-100 texts per held-out type for zero_shot_eval. Target ≥500 total. |
+| 10 | Benchmark protocol underspecified | Added hardware, prompt lengths, warmup, quantization matrix, LoRA anchor config. |
+| 11 | Conversation rendering spec missing | Defined canonical "A: text\nB: text" format for training input. |
+| 12 | Prompt template needs duplicate handling | Added "one entry per occurrence, order by first appearance" to template. |
+| 13 | Mention cardinality not preserved in Task 6 | Updated prompt to specify per-entity counts. Validation checks cardinality. |
+| 14 | open-ner caps should be per-language | Replaced total caps with per-language: en 30K, ja 20K, zh 20K, ko 15K, other 15K. |
+| 15 | Zero-shot holdout cross-namespace | Equivalence classes map same semantic type across label namespaces (EN/ZH/JA/KO). |
+| 16 | Split stratification after merge | Define primary_source = provenance[0] for stratification. |
+
+### Task 6 LLM Benchmark Results
+
+| Rank | Model | Role | Clean JSON | Critical Issues |
+|------|-------|------|------------|-----------------|
+| 1 | Gemini | Primary (50%) | 4/4 | None |
+| 2 | Codex (gpt-5.3) | Fallback | 4/4 | None (paid) |
+| 3 | Kimi K2.5 | Primary (50%) | 3/4 | Inconsistent fences |
+| 4 | GLM-5 | Tertiary | 2/3 | Timeout (rate limit) |
+| 5 | Sonnet 4.5 | DO NOT USE | 0/4 | Context confusion |
+| 6 | Trinity | DO NOT USE | 2/4 | Entity hallucination |
+
+Fallback chain updated: gemini → opencode → codex. Added fence-stripping + hallucination gate.
+
+### Informational
+
+- Training framework decided: MLX-LM (local M4 Max) + MS-SWIFT (cloud Modal). Ref: ONEIRON-RESEARCH-003.
+- LoRA anchor: rank 32, alpha 64, dropout 0.05, 16 layers, lr 5e-5.
+- Export: MLX → GGUF → CoreML/Luminal (device); MS-SWIFT → PEFT → vLLM (server).
+- Tier 0 strategy: Resolve by eval. If 0.6B zero-shot F1 < 50%, train head-only LoRA.
+
+## Round 4
 
 | # | Fix | Resolution |
 |---|-----|-----------|

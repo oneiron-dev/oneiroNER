@@ -19,7 +19,9 @@ Write `configs/dataset_inventory.json` and `configs/dataset_inventory.md` from t
 
 | Dataset | Format | Size | Languages | Entity Types | Span Info |
 |---------|--------|------|-----------|-------------|-----------|
-| B2NERD | JSON (zipped) | ~160K (unverified — see [Pre-Task 4](task-4-pretask.md)) | EN, ZH | 15K+ (unverified) | EN has `pos`; ZH needs verification |
+| B2NERD curated | JSON (zipped) | 51,907 (25,403 EN + 26,504 ZH) | EN, ZH | 341 types | EN has `pos`; ZH needs verification — MIT licensed |
+| B2NERD raw | JSON (zipped) | 1,419,161 (838,648 EN + 580,513 ZH) | EN, ZH | 341 types | EN has `pos`; ZH needs verification — license varies by source |
+| B2NERD test | JSON (zipped) | 20,723 (6,466 EN + 14,257 ZH) | EN, ZH | 145 types | EN has `pos`; ZH needs verification |
 | open-ner-standardized | Parquet BIO | ~830K | 52 langs | 60 types | Via BIO reconstruction |
 | open-ner-core-types | Parquet BIO | ~830K | 52 langs | 3 (PER/LOC/ORG) | Via BIO reconstruction |
 | fiNERweb | Parquet spans | ~2-4M (needs verification) | 91 langs | 235K+ | Native char spans |
@@ -38,5 +40,6 @@ All datasets symlinked in `data/raw/` → HF cache snapshots (READ ONLY).
 ## Notes
 
 - B2NERD data is in `B2NERD_data.zip` — must extract before processing (see [Pre-Task 4](task-4-pretask.md)).
+- **B2NERD version decision**: Use curated (52K) first. Raw (1.4M) available for v2 type coverage gaps. Licensing caution: raw aggregates 40 source datasets with varying licenses.
 - NuNER is a model checkpoint, not a dataset. Skip it.
-- Size and type count for B2NERD and fiNERweb need verification in [Pre-Task 4](task-4-pretask.md).
+- Size and type count for fiNERweb need verification in [Pre-Task 4](task-4-pretask.md).

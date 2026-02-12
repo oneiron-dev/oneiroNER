@@ -88,6 +88,17 @@ To preserve type diversity for open-vocab training AND ensure the model has seen
 }
 ```
 
+### Conversation Rendering Spec
+
+The canonical string rendering for training/inference input:
+
+```
+A: Did you hear Sarah went to Kyoto?
+B: Yeah, last Tuesday!
+```
+
+The model receives the rendered conversation as the `Text:` field in the per-type Q/A prompt. Entity `start`/`end` offsets remain relative to `turns[turn_index].text` in the schema, but the training prompt uses the rendered form. `span_computer.py` handles conversation format by scoping to `turns[turn_index].text`.
+
 ## Schema Fields
 
 | Field | Type | Description |
@@ -126,15 +137,24 @@ Each `query_type` becomes a separate user turn (UniversalNER per-type Q/A format
 
 ```
 System: Extract entities of the requested type from the given text.
-Return a JSON list of entity surfaces. If none exist, return [].
+Return one entry per occurrence in the text. If "Paris" appears twice, return ["Paris", "Paris"].
+Order by first appearance in the text. If none exist, return [].
 
 User: Text: "I had coffee with Sarah last Tuesday in Kyoto."
 Extract all entities of type: PERSON
+Return one entry per occurrence. Order by first appearance. If none, return [].
 Assistant: ["Sarah"]
 
 User: Text: "I had coffee with Sarah last Tuesday in Kyoto."
 Extract all entities of type: WEAPON
+Return one entry per occurrence. Order by first appearance. If none, return [].
 Assistant: []
 ```
 
 This makes "empty answer for negative types" unambiguous.
+
+### Chat Format Output
+
+The schema JSONL is converted to OpenAI chat format for training frameworks (MLX-LM, MS-SWIFT) by `convert_all.py`. Each `query_type` becomes a separate chat example with system/user/assistant messages. See [Task 4 — Training Format Conversion](task-4-conversion.md#training-format-conversion) for implementation.
+
+Reference: ONEIRON-RESEARCH-003 for training framework selection.

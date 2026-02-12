@@ -1,21 +1,27 @@
 ---
 task: 3
-title: Ontology Mapping (Eval-Only)
+title: Ontology Mapping (Eval + View B)
 phase: 1
 depends_on: []
 agent_model: opus
 outputs:
-  - configs/type_mapping.json
+  - configs/type_mapping_train.json
+  - configs/type_mapping_eval.json
+  - configs/type_mapping.json  # if Option B (single file with confidence)
   - configs/type_mapping.md
 ---
 
-# Task 3: Ontology Mapping (Eval-Only — NOT Training-Time Collapse)
+# Task 3: Ontology Mapping (Eval + View B)
 
 > Back to [README](README.md) | Prev: [Task 2](task-2-schema.md) | Next: [Pre-Task 4](task-4-pretask.md)
 
-**Critical: Do NOT collapse types during conversion.** The mapping file is used at evaluation time only, to score model output against Oneiron's canonical type vocabulary.
+**Critical: Do NOT collapse types during View A conversion.** Type diversity IS the training signal for UniversalNER generalization. B2NERD's 400+ types, fiNERweb's 235K+ types, OpenNER's 60 types all stay as-is in View A training data. Canonical remapping happens only in [View B](task-2-schema.md#dual-view-training-view-a--view-b) copies and at eval time.
 
-Type diversity IS the training signal for UniversalNER generalization. B2NERD's 400+ types, fiNERweb's 235K+ types, OpenNER's 60 types all stay as-is in training data. Canonical remapping happens only in [View B](task-2-schema.md#dual-view-training-view-a--view-b) copies.
+Mapping serves two purposes:
+- **Eval scoring**: Broader/heuristic mappings acceptable for grouping metrics.
+- **View B training**: High-precision mappings only — wrong canonical labels poison training data.
+
+When in doubt, omit a View B mapping. A missing View B copy is better than a wrong one.
 
 ## Purpose
 
@@ -49,3 +55,18 @@ Type diversity IS the training signal for UniversalNER generalization. B2NERD's 
 B2NERD has 15K+ types (unverified — see [Pre-Task 4](task-4-pretask.md)):
 - Keyword matching: types containing "person"/"人" → PERSON, "location"/"地" → PLACE, etc.
 - Types with `->` hierarchy (e.g., "organization -> corporation") → parse parent category.
+
+## Mapping Artifacts
+
+Two options (choose one during implementation):
+
+**Option A — Two files:**
+- `configs/type_mapping_train.json` — Conservative, high-precision only. Used by `convert_all.py` for View B generation.
+- `configs/type_mapping_eval.json` — Can be broader/heuristic. Used by `eval_ner.py` for scoring.
+
+**Option B — Single file with confidence:**
+- `configs/type_mapping.json` — Each mapping entry includes `"confidence": "high"|"medium"|"low"`.
+- View B generation only uses `confidence >= "high"` entries.
+- Eval scoring uses all entries.
+
+Either approach prevents low-confidence mappings from corrupting View B training data.

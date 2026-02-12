@@ -1,7 +1,7 @@
 ---
 project: oneiron-ner
 type: implementation-plan
-version: 4
+version: 5
 tasks: 7
 phases: 3
 ---
@@ -85,6 +85,24 @@ CLI tools at `/home/ubuntu/.bun/bin/`: codex (paid), gemini (free), opencode (fr
 
 NuNER: Skip. Model checkpoint, not dataset.
 
+Key config files:
+- `configs/zero_shot_holdout_types.json` — held-out types for zero-shot eval (produced by Pre-Task 4)
+- `configs/training_mix.json` — View B ratio, dataset caps, per-language quotas
+- `configs/type_mapping_train.json` — high-precision mappings for View B generation
+- `configs/type_mapping_eval.json` — broader mappings for eval scoring
+
+## References
+
+- ONEIRON-RESEARCH-002: Architecture, Luminal/on-device strategy (§11-§12)
+- ONEIRON-RESEARCH-003: Training framework selection (MLX-LM local, MS-SWIFT cloud)
+
+## What Comes After This Pipeline
+
+- **Local**: MLX-LM train → LoRA adapters → fuse → GGUF → CoreML/Luminal (on-device)
+- **Cloud**: MS-SWIFT train → HuggingFace PEFT adapters → merge → vLLM/Fireworks (server)
+
+See ONEIRON-RESEARCH-003 for training framework details.
+
 ## Change Log
 
-See [CHANGELOG.md](CHANGELOG.md) for full history of plan revisions across 4 rounds.
+See [CHANGELOG.md](CHANGELOG.md) for full history of plan revisions across 5 rounds.
