@@ -144,7 +144,7 @@ Rules:
 - Preserves label diversity for open-vocab generalization
 
 ### View B (canonical)
-- `type` = Oneiron canonical label (e.g. `PERSON`, `PLACE`, `ORGANIZATION`)
+- `type` = Oneiron canonical label (e.g. `PERSON`, `PLACE`, `ORG`)
 - `original_type` = source dataset's original label (preserved)
 - Generated only when source type maps to a canonical type via `type_mapping_train.json`
 - `source` suffixed with `_canonical` (e.g. `b2nerd_canonical`)
