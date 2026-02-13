@@ -197,12 +197,19 @@ def main():
         }
         for ds_name, expected_count in FULLY_COVERED.items():
             ds = inventory.get("datasets", {}).get(ds_name, {})
-            actual_count = ds.get("entity_types", {}).get("count", 0)
+            et = ds.get("entity_types", {})
+            actual_count = et.get("count", 0)
             if actual_count != expected_count:
                 errors.append(
                     f"Inventory drift: {ds_name} has {actual_count} types "
                     f"(expected {expected_count}). Update coverage lists."
                 )
+            for t in et.get("sample", []):
+                if t not in eval_map:
+                    errors.append(
+                        f"Inventory drift: {ds_name} sample type '{t}' "
+                        f"not in eval mapping"
+                    )
 
     # Distribution
     print("\n--- Train distribution ---")
