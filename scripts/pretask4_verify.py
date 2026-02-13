@@ -73,7 +73,7 @@ def scan_b2nerd_curated():
 
 
 def verify_pos_field():
-    """Verify pos field presence across B2NERD partitions."""
+    """Verify pos field presence across B2NERD partitions (exhaustive, per-dataset)."""
     checks = {}
     base = Path(B2NERD_DIR)
 
@@ -89,9 +89,10 @@ def verify_pos_field():
         if not part_dir.exists():
             checks[lang] = {"exists": False}
             continue
-        has_pos_count = 0
-        no_pos_count = 0
-        sampled = 0
+        datasets_with_pos = []
+        datasets_without_pos = []
+        total_entities_with_pos = 0
+        total_entities_without_pos = 0
         for dataset_dir in sorted(part_dir.iterdir()):
             if not dataset_dir.is_dir():
                 continue
@@ -100,71 +101,99 @@ def verify_pos_field():
                 continue
             with open(train_path) as f:
                 data = json.load(f)
-            for entry in data[:5]:
+            ds_has_pos = False
+            ds_has_no_pos = False
+            for entry in data:
+                if not isinstance(entry, dict):
+                    continue
                 for ent in entry.get("entities", []):
                     if "pos" in ent:
-                        has_pos_count += 1
+                        ds_has_pos = True
+                        total_entities_with_pos += 1
                     else:
-                        no_pos_count += 1
-                    sampled += 1
-            if sampled >= 20:
-                break
+                        ds_has_no_pos = True
+                        total_entities_without_pos += 1
+            if ds_has_pos:
+                datasets_with_pos.append(dataset_dir.name)
+            if ds_has_no_pos and not ds_has_pos:
+                datasets_without_pos.append(dataset_dir.name)
+        total_datasets = len(datasets_with_pos) + len(datasets_without_pos)
         checks[lang] = {
-            "has_pos": has_pos_count,
-            "no_pos": no_pos_count,
+            "datasets_with_pos": len(datasets_with_pos),
+            "datasets_without_pos": len(datasets_without_pos),
+            "total_datasets": total_datasets,
+            "entities_with_pos": total_entities_with_pos,
+            "entities_without_pos": total_entities_without_pos,
             "expected_pos": expected_pos,
-            "matches_expectation": (has_pos_count > 0) == expected_pos if sampled > 0 else None,
+            "datasets_without_pos_names": datasets_without_pos if expected_pos else None,
+            "matches_expectation": (len(datasets_with_pos) > 0) == expected_pos if total_datasets > 0 else None,
         }
     return checks
 
 
 def verify_pos_semantics():
-    """Determine if pos field uses exclusive or inclusive end."""
+    """Determine if pos field uses exclusive or inclusive end (exhaustive)."""
     base = Path(B2NERD_DIR) / "B2NERD" / "NER_en"
     exclusive_match = 0
     inclusive_match = 0
     neither = 0
     examples = []
+    per_dataset = {}
 
     for dataset_dir in sorted(base.iterdir()):
         if not dataset_dir.is_dir():
             continue
-        train_path = dataset_dir / "train.json"
-        if not train_path.exists():
-            continue
-        with open(train_path) as f:
-            data = json.load(f)
-        for entry in data:
-            for ent in entry.get("entities", []):
-                if "pos" not in ent:
+        ds_excl = 0
+        ds_incl = 0
+        ds_neither = 0
+        for split_name in ["train.json", "dev.json"]:
+            split_path = dataset_dir / split_name
+            if not split_path.exists():
+                continue
+            with open(split_path) as f:
+                data = json.load(f)
+            if not isinstance(data, list):
+                continue
+            for entry in data:
+                if not isinstance(entry, dict):
                     continue
-                sent = entry["sentence"]
-                name = ent["name"]
-                start, end = ent["pos"]
-                excl = sent[start:end]
-                incl = sent[start:end + 1]
-                if excl == name:
-                    exclusive_match += 1
-                elif incl == name:
-                    inclusive_match += 1
-                else:
-                    neither += 1
-                if len(examples) < 10:
-                    examples.append({
-                        "name": name,
-                        "pos": [start, end],
-                        "slice_exclusive": excl[:50],
-                        "slice_inclusive": incl[:50],
-                        "match": "exclusive" if excl == name else ("inclusive" if incl == name else "neither"),
-                    })
-        if exclusive_match + inclusive_match + neither >= 100:
-            break
+                for ent in entry.get("entities", []):
+                    if "pos" not in ent:
+                        continue
+                    sent = entry["sentence"]
+                    name = ent["name"]
+                    start, end = ent["pos"]
+                    excl = sent[start:end]
+                    incl = sent[start:end + 1]
+                    if excl == name:
+                        ds_excl += 1
+                    elif incl == name:
+                        ds_incl += 1
+                    else:
+                        ds_neither += 1
+                    if len(examples) < 10:
+                        examples.append({
+                            "name": name,
+                            "pos": [start, end],
+                            "slice_exclusive": excl[:50],
+                            "slice_inclusive": incl[:50],
+                            "match": "exclusive" if excl == name else ("inclusive" if incl == name else "neither"),
+                        })
+        if ds_excl + ds_incl + ds_neither > 0:
+            per_dataset[dataset_dir.name] = {
+                "exclusive": ds_excl, "inclusive": ds_incl, "neither": ds_neither
+            }
+        exclusive_match += ds_excl
+        inclusive_match += ds_incl
+        neither += ds_neither
 
     return {
         "exclusive_matches": exclusive_match,
         "inclusive_matches": inclusive_match,
         "neither": neither,
+        "datasets_checked": len(per_dataset),
         "convention": "exclusive" if exclusive_match > inclusive_match else "inclusive",
+        "per_dataset": per_dataset,
         "examples": examples[:5],
     }
 
@@ -343,25 +372,31 @@ def main():
     print(f"Unique types (test): {len(b2nerd_results['types_test'])}")
 
     # Step 2: pos field verification
-    print("\n--- B2NERD pos Field Verification ---")
+    print("\n--- B2NERD pos Field Verification (exhaustive, per-dataset) ---")
     pos_checks = verify_pos_field()
     for lang, info in pos_checks.items():
         if not info.get("exists", True):
             print(f"  {lang}: directory not found")
             continue
         status = "PASS" if info.get("matches_expectation") else "FAIL"
-        print(f"  {lang}: has_pos={info['has_pos']}, no_pos={info['no_pos']} "
-              f"[expected pos={info['expected_pos']}] -> {status}")
+        print(f"  {lang}: {info['datasets_with_pos']}/{info['total_datasets']} datasets have pos "
+              f"({info['entities_with_pos']:,} entities with, {info['entities_without_pos']:,} without) "
+              f"[expected={info['expected_pos']}] -> {status}")
+        if info.get("datasets_without_pos_names"):
+            print(f"    Datasets WITHOUT pos: {info['datasets_without_pos_names']}")
 
     # Step 3: pos end semantics
-    print("\n--- B2NERD pos End Semantics ---")
+    print("\n--- B2NERD pos End Semantics (exhaustive) ---")
     pos_semantics = verify_pos_semantics()
-    print(f"  Exclusive matches: {pos_semantics['exclusive_matches']}")
-    print(f"  Inclusive matches: {pos_semantics['inclusive_matches']}")
-    print(f"  Neither: {pos_semantics['neither']}")
+    print(f"  Datasets checked: {pos_semantics['datasets_checked']}")
+    print(f"  Exclusive matches: {pos_semantics['exclusive_matches']:,}")
+    print(f"  Inclusive matches: {pos_semantics['inclusive_matches']:,}")
+    print(f"  Neither: {pos_semantics['neither']:,}")
     print(f"  Convention: {pos_semantics['convention']}")
+    for ds_name, counts in pos_semantics["per_dataset"].items():
+        print(f"    {ds_name}: excl={counts['exclusive']:,} incl={counts['inclusive']} neither={counts['neither']}")
     for ex in pos_semantics["examples"][:3]:
-        print(f"    name='{ex['name']}' pos={ex['pos']} -> {ex['match']}")
+        print(f"    ex: name='{ex['name']}' pos={ex['pos']} -> {ex['match']}")
 
     # Step 4: Type frequency scan across all datasets
     print("\n--- Type Frequency Scan ---")

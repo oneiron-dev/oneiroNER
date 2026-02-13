@@ -36,11 +36,11 @@
           "Award"
         ]
       },
-      "span_info": "pos field [start, end) exclusive in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos. Verified: sentence[pos[0]:pos[1]] == entity name (5386/5386 matches).",
+      "span_info": "pos field [start, end) exclusive in NER_en only (25/26 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos. Verified exhaustively: 324,558 exclusive matches, 0 inclusive, 8 neither (TweetNER7 edge cases).",
       "confidence": "synthetic-gold",
       "license": "MIT",
       "status": "needs_extraction",
-      "notes": "388K train+dev entries across 67 source datasets (27 EN, 29 ZH, 11 EN_other). 15,620 unique fine-grained types (LLM-generated free-form labels). ZH data lacks pos field in ALL versions (curated, raw, B2NERD_all) — converter must use string matching for ZH offsets. NER_en_other contains multiconer22 multilingual samples (11 languages)."
+      "notes": "388K train+dev entries across 66 source datasets (26 EN, 29 ZH, 11 EN_other). 15,620 unique fine-grained types (LLM-generated free-form labels). ZH data lacks pos field in ALL versions (curated, raw, B2NERD_all) — converter must use string matching for ZH offsets. NER_en_other contains multiconer22 multilingual samples (11 languages)."
     },
     "b2nerd_test": {
       "hf_id": "Umean/B2NERD",
@@ -70,7 +70,7 @@
           "Event"
         ]
       },
-      "span_info": "pos field [start, end) exclusive in NER_en only; NER_zh and NER_en_other have name+type only (no position offsets).",
+      "span_info": "pos field [start, end) exclusive in NER_en only (25/26 datasets); NER_zh and NER_en_other have name+type only. PileNER lacks pos.",
       "confidence": "synthetic-gold",
       "license": "MIT",
       "status": "needs_extraction",
@@ -104,7 +104,7 @@
           "Chemical"
         ]
       },
-      "span_info": "pos field [start, end) exclusive in NER_en only; NER_zh lacks pos in ALL versions (curated, raw, B2NERD_all). PileNER in NER_en also lacks pos.",
+      "span_info": "pos field [start, end) exclusive in NER_en only (26/27 datasets); NER_zh lacks pos in ALL versions (curated, raw, B2NERD_all). PileNER in NER_en also lacks pos.",
       "confidence": "synthetic",
       "license": "varies_by_source",
       "status": "needs_extraction",

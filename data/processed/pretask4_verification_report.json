@@ -13,47 +13,205 @@
   },
   "pos_field_checks": {
     "en_curated": {
-      "has_pos": 25,
-      "no_pos": 0,
+      "datasets_with_pos": 25,
+      "datasets_without_pos": 1,
+      "total_datasets": 26,
+      "entities_with_pos": 81785,
+      "entities_without_pos": 621796,
       "expected_pos": true,
+      "datasets_without_pos_names": [
+        "PileNER"
+      ],
       "matches_expectation": true
     },
     "zh_curated": {
-      "has_pos": 0,
-      "no_pos": 32,
+      "datasets_with_pos": 0,
+      "datasets_without_pos": 29,
+      "total_datasets": 29,
+      "entities_with_pos": 0,
+      "entities_without_pos": 331897,
       "expected_pos": false,
+      "datasets_without_pos_names": null,
       "matches_expectation": true
     },
     "en_raw": {
-      "has_pos": 29,
-      "no_pos": 0,
+      "datasets_with_pos": 26,
+      "datasets_without_pos": 1,
+      "total_datasets": 27,
+      "entities_with_pos": 1263657,
+      "entities_without_pos": 621796,
       "expected_pos": true,
+      "datasets_without_pos_names": [
+        "PileNER"
+      ],
       "matches_expectation": true
     },
     "zh_raw": {
-      "has_pos": 0,
-      "no_pos": 55,
+      "datasets_with_pos": 0,
+      "datasets_without_pos": 37,
+      "total_datasets": 37,
+      "entities_with_pos": 0,
+      "entities_without_pos": 1858703,
       "expected_pos": false,
+      "datasets_without_pos_names": null,
       "matches_expectation": true
     },
     "en_all": {
-      "has_pos": 29,
-      "no_pos": 0,
+      "datasets_with_pos": 26,
+      "datasets_without_pos": 1,
+      "total_datasets": 27,
+      "entities_with_pos": 1263282,
+      "entities_without_pos": 621796,
       "expected_pos": true,
+      "datasets_without_pos_names": [
+        "PileNER"
+      ],
       "matches_expectation": true
     },
     "zh_all": {
-      "has_pos": 0,
-      "no_pos": 55,
+      "datasets_with_pos": 0,
+      "datasets_without_pos": 32,
+      "total_datasets": 32,
+      "entities_with_pos": 0,
+      "entities_without_pos": 1721286,
       "expected_pos": false,
+      "datasets_without_pos_names": null,
       "matches_expectation": true
     }
   },
   "pos_semantics": {
-    "exclusive_matches": 5386,
+    "exclusive_matches": 324558,
     "inclusive_matches": 0,
-    "neither": 0,
+    "neither": 8,
+    "datasets_checked": 25,
     "convention": "exclusive",
+    "per_dataset": {
+      "ACE 2004": {
+        "exclusive": 7899,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "ACE 2005": {
+        "exclusive": 9616,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "AnatEM": {
+        "exclusive": 2909,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "Broad Tweet Corpus": {
+        "exclusive": 3819,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "CoNLL 2003": {
+        "exclusive": 8419,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "CrossNER_AI": {
+        "exclusive": 1704,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "CrossNER_literature": {
+        "exclusive": 2313,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "CrossNER_music": {
+        "exclusive": 3045,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "CrossNER_politics": {
+        "exclusive": 4134,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "CrossNER_science": {
+        "exclusive": 2813,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "FabNER": {
+        "exclusive": 18221,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "FindVehicle": {
+        "exclusive": 105782,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "GENIA_NER": {
+        "exclusive": 8976,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "HarveyNER": {
+        "exclusive": 1014,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "MultiNERD": {
+        "exclusive": 22117,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "Ontonotes": {
+        "exclusive": 24490,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "TweetNER7": {
+        "exclusive": 6753,
+        "inclusive": 0,
+        "neither": 8
+      },
+      "WikiANN en": {
+        "exclusive": 10492,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "WikiNeural": {
+        "exclusive": 16744,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "bc2gm": {
+        "exclusive": 4014,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "bc4chemd": {
+        "exclusive": 30322,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "bc5cdr": {
+        "exclusive": 10964,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "mit-movie": {
+        "exclusive": 9770,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "mit-restaurant": {
+        "exclusive": 6746,
+        "inclusive": 0,
+        "neither": 0
+      },
+      "ncbi": {
+        "exclusive": 1482,
+        "inclusive": 0,
+        "neither": 0
+      }
+    },
     "examples": [
       {
         "name": "Japanese",

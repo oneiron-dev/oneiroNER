@@ -35,9 +35,9 @@
       "scripts/pretask4_verify.py"
     ],
     "findings": {
-      "b2nerd_pos_semantics": "exclusive [start, end)",
-      "b2nerd_zh_pos": "absent in ALL versions (curated, raw, B2NERD_all)",
-      "b2nerd_en_pos": "present in 25/27 EN datasets (absent: PileNER, bc4chemd)",
+      "b2nerd_pos_semantics": "exclusive [start, end) — 324,558/324,566 matches exhaustive (8 edge cases in TweetNER7)",
+      "b2nerd_zh_pos": "absent in ALL versions (curated, raw, B2NERD_all) — 0/29 curated, 0/37 raw, 0/32 all",
+      "b2nerd_en_pos": "present in 25/26 curated, 26/27 raw EN datasets (absent: PileNER only)",
       "b2nerd_curated_types": 15620,
       "b2nerd_test_types": 328,
       "holdout_types": ["DISEASE", "CREATIVE_WORK", "FOOD", "SOFTWARE", "LANGUAGE"],
