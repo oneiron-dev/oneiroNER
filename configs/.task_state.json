@@ -41,7 +41,55 @@
       "b2nerd_curated_types": 15620,
       "b2nerd_test_types": 328,
       "holdout_types": ["DISEASE", "CREATIVE_WORK", "FOOD", "SOFTWARE", "LANGUAGE"],
-      "fiNERweb_count_confirmed": 1995477
+      "fiNERweb_count_confirmed": 1995477,
+      "chinese_ner_sft_offsets": {
+        "exclusive": ["bank", "ccfbdci", "ccks2019_task1", "dlner", "e_commerce", "finance_sina", "weibo", "youku"],
+        "inclusive": ["cluener", "cmeee"],
+        "mixed": ["msra"],
+        "all_null": ["nlpcc_2018_task4"],
+        "note": "msra: multi-char entities exclusive, single-char inclusive (40/10 in first 50)"
+      }
+    }
+  },
+  "task_4": {
+    "status": "complete",
+    "completed_at": "2026-02-13",
+    "outputs": [
+      "scripts/lib/schema.py",
+      "scripts/lib/span_validator.py",
+      "scripts/lib/span_computer.py",
+      "scripts/lib/negative_sampler.py",
+      "scripts/lib/bio_to_spans.py",
+      "scripts/lib/dedup.py",
+      "scripts/lib/splitter.py",
+      "scripts/convert_stockmark.py",
+      "scripts/convert_finerweb.py",
+      "scripts/convert_chinese_ner.py",
+      "scripts/convert_b2nerd.py",
+      "scripts/convert_open_ner.py",
+      "scripts/convert_multiconer.py",
+      "scripts/convert_klue.py",
+      "scripts/convert_all.py",
+      "data/processed/train.jsonl",
+      "data/processed/val.jsonl",
+      "data/processed/zero_shot_eval.jsonl",
+      "data/processed/train_chat.jsonl",
+      "data/processed/val_chat.jsonl",
+      "configs/training_mix.json"
+    ],
+    "stats": {
+      "input_records": 3206164,
+      "unique_texts": 2729707,
+      "merged_duplicates": 439535,
+      "train_view_a": 2555975,
+      "train_view_b": 1421811,
+      "train_total": 3977786,
+      "val_view_a": 136403,
+      "val_view_b": 74813,
+      "val_total": 211216,
+      "zero_shot_eval": 37326,
+      "train_chat_examples": 20612654,
+      "val_chat_examples": 1097122
     }
   }
 }
