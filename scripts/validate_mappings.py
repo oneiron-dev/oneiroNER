@@ -65,6 +65,12 @@ REQUIRED_IN_EVAL_ONLY = {
         "NORP", "QUANTITY", "LAW", "LANG", "DESIGNATION", "TITLE_AFFIX",
         "RELIGION", "DISEASE", "PRODUCT", "CREATIVE_WORK",
         "PER-DERIV", "LOC-DERIV", "ORG-DERIV", "MISC-DERIV",
+        "ADAGE", "ART", "ART-DERIV", "ART-PART", "CONTACT", "DATETIME",
+        "DERIV", "EVENT-DERIV", "EVENT-PART", "FESTIVAL", "GAME", "GROUP",
+        "LANG-DERIV", "LANG-PART", "LITERATURE", "LOC-PART", "MEASURE",
+        "MISC-PART", "MOVEMENT", "NON_HUMAN", "NUM", "ORG-PART",
+        "PER-PART", "PERCENTAGE", "PERIOD", "PET_NAME", "PHONE",
+        "POSITION", "PROJECT", "RELIGION-DERIV",
     ],
     "multiconer_v2_other": [
         "Disease", "Symptom", "AnatomicalStructure", "MedicalProcedure",
@@ -186,6 +192,8 @@ def main():
             "klue_ner": 6,
             "multiconer_v2": 33,
             "stockmark_ner_ja": 8,
+            "open_ner_standardized": 60,
+            "chinese_ner_sft": 72,
         }
         for ds_name, expected_count in FULLY_COVERED.items():
             ds = inventory.get("datasets", {}).get(ds_name, {})

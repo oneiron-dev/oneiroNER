@@ -63,8 +63,38 @@ Both files use a flat `{ "source_type": "CANONICAL" }` format — no nesting, no
 | DISEASE | OTHER | eval only |
 | PRODUCT | OTHER | eval only |
 | CREATIVE_WORK | OTHER | eval only |
+| ADAGE | OTHER | eval only |
+| ART | OTHER | eval only |
+| ART-DERIV | OTHER | eval only |
+| ART-PART | OTHER | eval only |
+| CONTACT | OTHER | eval only |
+| DATETIME | DATE | eval only |
+| DERIV | OTHER | eval only |
+| EVENT-DERIV | OTHER | eval only |
+| EVENT-PART | OTHER | eval only |
+| FESTIVAL | OTHER | eval only |
+| GAME | ACTIVITY | eval only |
+| GROUP | OTHER | eval only |
+| LANG-DERIV | OTHER | eval only |
+| LANG-PART | OTHER | eval only |
+| LITERATURE | OTHER | eval only |
+| LOC-PART | PLACE | eval only |
+| MEASURE | OTHER | eval only |
+| MISC-PART | OTHER | eval only |
+| MOVEMENT | OTHER | eval only |
+| NON_HUMAN | OTHER | eval only |
+| NUM | OTHER | eval only |
+| ORG-PART | ORG | eval only |
+| PER-PART | PERSON | eval only |
+| PERCENTAGE | OTHER | eval only |
+| PERIOD | DATE | eval only |
+| PET_NAME | OTHER | eval only |
+| PHONE | OTHER | eval only |
+| POSITION | OTHER | eval only |
+| PROJECT | OTHER | eval only |
+| RELIGION-DERIV | OTHER | eval only |
 
-Remaining types (if any beyond these 30) are not mapped — handled by runtime heuristics or omitted.
+All 60 open_ner types are statically mapped.
 
 ### open_ner_core_types (3 types)
 
