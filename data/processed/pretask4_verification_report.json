@@ -264,5 +264,103 @@
         "match": "exclusive"
       }
     ]
+  },
+  "chinese_ner_sft_offsets": {
+    "bank": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    },
+    "ccfbdci": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    },
+    "ccks2019_task1": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    },
+    "cluener": {
+      "exclusive": 0,
+      "inclusive": 50,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "inclusive"
+    },
+    "cmeee": {
+      "exclusive": 0,
+      "inclusive": 50,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "inclusive"
+    },
+    "dlner": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    },
+    "e_commerce": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    },
+    "finance_sina": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    },
+    "msra": {
+      "exclusive": 40,
+      "inclusive": 10,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "mixed"
+    },
+    "nlpcc_2018_task4": {
+      "exclusive": 0,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 11956,
+      "checked": 0,
+      "convention": "all_null"
+    },
+    "weibo": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    },
+    "youku": {
+      "exclusive": 50,
+      "inclusive": 0,
+      "neither": 0,
+      "null_offsets": 0,
+      "checked": 50,
+      "convention": "exclusive"
+    }
   }
 }

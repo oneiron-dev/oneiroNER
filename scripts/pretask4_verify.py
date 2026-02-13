@@ -198,6 +198,66 @@ def verify_pos_semantics():
     }
 
 
+def verify_chinese_ner_sft_offsets():
+    """Detect offset convention (exclusive vs inclusive) per chinese_ner_sft subset."""
+    data_dir = RAW_DIR / "chinese_ner_sft" / "data"
+    results = {}
+
+    for jsonl_file in sorted(data_dir.glob("*.jsonl")):
+        subset = jsonl_file.stem
+        exclusive_ok = 0
+        inclusive_ok = 0
+        neither = 0
+        null_count = 0
+        checked = 0
+
+        with open(jsonl_file) as f:
+            for line in f:
+                if checked >= 50:
+                    break
+                entry = json.loads(line)
+                text = entry.get("text", "")
+                for ent in entry.get("entities", []):
+                    if checked >= 50:
+                        break
+                    start = ent.get("start_idx")
+                    end = ent.get("end_idx")
+                    surface = ent.get("entity_text", "")
+                    if start is None or end is None:
+                        null_count += 1
+                        continue
+                    excl = text[start:end]
+                    incl = text[start:end + 1]
+                    if excl == surface:
+                        exclusive_ok += 1
+                    elif incl == surface:
+                        inclusive_ok += 1
+                    else:
+                        neither += 1
+                    checked += 1
+
+        total = exclusive_ok + inclusive_ok + neither
+        if total == 0:
+            convention = "all_null"
+        elif exclusive_ok / total > 0.9:
+            convention = "exclusive"
+        elif inclusive_ok / total > 0.9:
+            convention = "inclusive"
+        else:
+            convention = "mixed"
+
+        results[subset] = {
+            "exclusive": exclusive_ok,
+            "inclusive": inclusive_ok,
+            "neither": neither,
+            "null_offsets": null_count,
+            "checked": total,
+            "convention": convention,
+        }
+
+    return results
+
+
 def scan_b2nerd_types():
     """Scan B2NERD curated train+dev for type frequencies."""
     base = Path(B2NERD_DIR) / "B2NERD"
@@ -398,7 +458,15 @@ def main():
     for ex in pos_semantics["examples"][:3]:
         print(f"    ex: name='{ex['name']}' pos={ex['pos']} -> {ex['match']}")
 
-    # Step 4: Type frequency scan across all datasets
+    # Step 4: chinese_ner_sft offset convention
+    print("\n--- chinese_ner_sft Offset Convention ---")
+    cns_offsets = verify_chinese_ner_sft_offsets()
+    for subset, info in sorted(cns_offsets.items()):
+        print(f"  {subset}: {info['convention']} "
+              f"(excl={info['exclusive']} incl={info['inclusive']} "
+              f"neither={info['neither']} null={info['null_offsets']})")
+
+    # Step 5: Type frequency scan across all datasets
     print("\n--- Type Frequency Scan ---")
     all_type_freqs = {}
 
@@ -459,6 +527,7 @@ def main():
         },
         "pos_field_checks": pos_checks,
         "pos_semantics": pos_semantics,
+        "chinese_ner_sft_offsets": cns_offsets,
     }
     with open(OUT_DIR / "pretask4_verification_report.json", "w") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)

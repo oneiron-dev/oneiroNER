@@ -133,7 +133,7 @@ Ordered from highest to lowest quality. When merging duplicates, use `min()` wit
 
 Rules:
 - `eval` and `zero_shot_eval` splits are never used for training
-- `zero_shot_eval` contains only types from `configs/zero_shot_holdout_types.json`
+- `zero_shot_eval` contains only entity types from `configs/zero_shot_holdout_types.json` (entities in examples are holdout types only; `query_types` still includes 2-5 non-holdout negative distractors per the universal invariant)
 
 ## Dual-View System
 

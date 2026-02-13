@@ -291,7 +291,7 @@ Output: `data/processed/train_chat.jsonl`, `data/processed/val_chat.jsonl`
 
 ## Output Files
 
-- `data/processed/b2nerd_en.jsonl`, `b2nerd_zh.jsonl`, `b2nerd_ambiguous.jsonl`
+- `data/processed/b2nerd_en.jsonl`, `b2nerd_zh.jsonl`, `b2nerd_en_other.jsonl`, `b2nerd_ambiguous.jsonl`
 - `data/processed/open_ner_standardized.jsonl`, `open_ner_core_types.jsonl`
 - `data/processed/finerweb_{lang}.jsonl` (capped 50K each)
 - `data/processed/chinese_ner_sft.jsonl`, `multiconer_v2_{lang}.jsonl`, `klue_ner.jsonl`, `stockmark_ner_ja.jsonl`
@@ -299,6 +299,7 @@ Output: `data/processed/train_chat.jsonl`, `data/processed/val_chat.jsonl`
 - `data/processed/val.jsonl` (split=val, includes View A + View B)
 - `data/processed/train_chat.jsonl` (chat format for MLX-LM/MS-SWIFT)
 - `data/processed/val_chat.jsonl` (chat format for MLX-LM/MS-SWIFT)
+- `data/processed/zero_shot_eval.jsonl`
 - `data/processed/dedup_stats.json`
 - `configs/training_mix.json` (View B ratio, dataset caps)
 
