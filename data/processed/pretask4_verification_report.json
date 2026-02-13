@@ -1,0 +1,110 @@
+{
+  "b2nerd_counts": {
+    "en_train_dev": 196043,
+    "zh_train_dev": 128232,
+    "en_other_train_dev": 63800,
+    "total_train_dev": 388075,
+    "en_test": 121156,
+    "zh_test": 230880,
+    "en_other_test": 55000,
+    "total_test": 407036,
+    "unique_types_train_dev": 15620,
+    "unique_types_test": 328
+  },
+  "pos_field_checks": {
+    "en_curated": {
+      "has_pos": 25,
+      "no_pos": 0,
+      "expected_pos": true,
+      "matches_expectation": true
+    },
+    "zh_curated": {
+      "has_pos": 0,
+      "no_pos": 32,
+      "expected_pos": false,
+      "matches_expectation": true
+    },
+    "en_raw": {
+      "has_pos": 29,
+      "no_pos": 0,
+      "expected_pos": true,
+      "matches_expectation": true
+    },
+    "zh_raw": {
+      "has_pos": 0,
+      "no_pos": 55,
+      "expected_pos": false,
+      "matches_expectation": true
+    },
+    "en_all": {
+      "has_pos": 29,
+      "no_pos": 0,
+      "expected_pos": true,
+      "matches_expectation": true
+    },
+    "zh_all": {
+      "has_pos": 0,
+      "no_pos": 55,
+      "expected_pos": false,
+      "matches_expectation": true
+    }
+  },
+  "pos_semantics": {
+    "exclusive_matches": 5386,
+    "inclusive_matches": 0,
+    "neither": 0,
+    "convention": "exclusive",
+    "examples": [
+      {
+        "name": "Japanese",
+        "pos": [
+          4,
+          12
+        ],
+        "slice_exclusive": "Japanese",
+        "slice_inclusive": "Japanese ",
+        "match": "exclusive"
+      },
+      {
+        "name": "Irkotsik ( east Russia )",
+        "pos": [
+          74,
+          98
+        ],
+        "slice_exclusive": "Irkotsik ( east Russia )",
+        "slice_inclusive": "Irkotsik ( east Russia ) ",
+        "match": "exclusive"
+      },
+      {
+        "name": "The Japanese official",
+        "pos": [
+          0,
+          21
+        ],
+        "slice_exclusive": "The Japanese official",
+        "slice_inclusive": "The Japanese official ",
+        "match": "exclusive"
+      },
+      {
+        "name": "east Russia",
+        "pos": [
+          85,
+          96
+        ],
+        "slice_exclusive": "east Russia",
+        "slice_inclusive": "east Russia ",
+        "match": "exclusive"
+      },
+      {
+        "name": "florida",
+        "pos": [
+          20,
+          27
+        ],
+        "slice_exclusive": "florida",
+        "slice_inclusive": "florida ",
+        "match": "exclusive"
+      }
+    ]
+  }
+}

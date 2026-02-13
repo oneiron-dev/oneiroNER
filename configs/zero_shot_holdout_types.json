@@ -1,0 +1,33 @@
+{
+  "DISEASE": [
+    "disease",
+    "Disease",
+    "DISEASE",
+    "disease name",
+    "dis",
+    "疾病和诊断"
+  ],
+  "CREATIVE_WORK": [
+    "creative work",
+    "CREATIVE_WORK",
+    "VisualWork",
+    "WrittenWork",
+    "MusicalWork",
+    "ArtWork"
+  ],
+  "FOOD": [
+    "food",
+    "Food",
+    "food items",
+    "Drink"
+  ],
+  "SOFTWARE": [
+    "software",
+    "Software"
+  ],
+  "LANGUAGE": [
+    "language",
+    "Language",
+    "LANG"
+  ]
+}

@@ -17,36 +17,30 @@
         "zh"
       ],
       "entity_types": {
-        "count": 492,
+        "count": 15620,
         "sample": [
-          "AI algorithm",
-          "Abbreviation",
-          "Activity",
-          "Agreement",
-          "Anatomy",
-          "Animal",
-          "Award",
-          "Band",
-          "Cell",
-          "Chemical",
-          "City",
-          "Company",
-          "Concept",
-          "Country",
+          "person",
+          "chemical",
+          "location",
+          "concept",
+          "organization",
+          "Person",
+          "Organization",
+          "Location",
+          "disease",
+          "product",
           "Date",
-          "Disease",
           "Event",
           "Facility",
-          "Location",
-          "Organization",
-          "Person"
+          "Animal",
+          "Award"
         ]
       },
-      "span_info": "pos field [start, end] in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos.",
+      "span_info": "pos field [start, end) exclusive in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos. Verified: sentence[pos[0]:pos[1]] == entity name (5386/5386 matches).",
       "confidence": "synthetic-gold",
       "license": "MIT",
       "status": "needs_extraction",
-      "notes": "README states ~52K pruned samples from 54 datasets. Actual B2NERD/ train+dev files contain 388K entries (full source datasets before pruning). NER_en_other contains multiconer22 multilingual samples (11 languages)."
+      "notes": "388K train+dev entries across 67 source datasets (27 EN, 29 ZH, 11 EN_other). 15,620 unique fine-grained types (LLM-generated free-form labels). ZH data lacks pos field in ALL versions (curated, raw, B2NERD_all) — converter must use string matching for ZH offsets. NER_en_other contains multiconer22 multilingual samples (11 languages)."
     },
     "b2nerd_test": {
       "hf_id": "Umean/B2NERD",
@@ -63,25 +57,24 @@
         "zh"
       ],
       "entity_types": {
-        "count": 492,
+        "count": 328,
         "sample": [
-          "AI algorithm",
-          "Abbreviation",
-          "Activity",
-          "Agreement",
-          "Anatomy",
-          "Animal",
-          "Award",
-          "Band",
-          "Cell",
-          "Chemical"
+          "person",
+          "location",
+          "organization",
+          "disease",
+          "chemical",
+          "concept",
+          "product",
+          "Date",
+          "Event"
         ]
       },
-      "span_info": "pos field [start, end] in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos.",
+      "span_info": "pos field [start, end) exclusive in NER_en only; NER_zh and NER_en_other have name+type only (no position offsets).",
       "confidence": "synthetic-gold",
       "license": "MIT",
       "status": "needs_extraction",
-      "notes": "Test splits from B2NERD/ curated subset. Reserved for evaluation — do not use in training."
+      "notes": "Test splits from B2NERD/ curated subset. 328 unique types in test data. Reserved for evaluation — do not use in training."
     },
     "b2nerd_raw": {
       "hf_id": "Umean/B2NERD",
@@ -111,7 +104,7 @@
           "Chemical"
         ]
       },
-      "span_info": "pos field [start, end] in NER_en only (25/27 datasets); NER_zh and NER_en_other have name+type only (no position offsets). PileNER in NER_en also lacks pos.",
+      "span_info": "pos field [start, end) exclusive in NER_en only; NER_zh lacks pos in ALL versions (curated, raw, B2NERD_all). PileNER in NER_en also lacks pos.",
       "confidence": "synthetic",
       "license": "varies_by_source",
       "status": "needs_extraction",
