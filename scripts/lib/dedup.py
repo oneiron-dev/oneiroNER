@@ -1,11 +1,17 @@
-"""Two-pass streaming deduplication with merge-on-duplicate."""
+"""Two-pass streaming deduplication with merge-on-duplicate.
+
+Pass 1: Stream all input files, compute text hash per line, build
+        hash → [(file_path, byte_offset)] index.  Only hashes and
+        offsets are stored — no parsed records in memory.
+Pass 2: Single-occurrence hashes → write the raw line through directly.
+        Multi-occurrence hashes → seek-read each record, merge, write.
+"""
 
 import hashlib
 import json
 import logging
 import random
 import unicodedata
-from collections import defaultdict
 from pathlib import Path
 
 from .schema import NerRecord, min_confidence
@@ -17,6 +23,14 @@ logger = logging.getLogger(__name__)
 def text_hash(text: str) -> str:
     normalized = unicodedata.normalize("NFKC", text)
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _extract_text_fast(line: str) -> str | None:
+    try:
+        d = json.loads(line)
+        return d.get("text")
+    except (json.JSONDecodeError, KeyError):
+        return None
 
 
 def merge_records(records: list[NerRecord], sampler: NegativeSampler, rng: random.Random) -> NerRecord:
@@ -58,6 +72,20 @@ def merge_records(records: list[NerRecord], sampler: NegativeSampler, rng: rando
     return merged
 
 
+def _recompute_negatives(line: str, sampler: NegativeSampler, rng: random.Random) -> str | None:
+    try:
+        d = json.loads(line)
+        positive_types = set(ent["type"] for ent in d["entities"])
+        negatives = sampler.sample(positive_types, rng=rng)
+        d["query_types"] = sorted(positive_types | set(negatives))
+        rec = NerRecord.from_jsonl(json.dumps(d, ensure_ascii=False))
+        rec.validate()
+        return rec.to_jsonl()
+    except Exception as e:
+        logger.debug("Recompute/validation failed: %s", e)
+        return None
+
+
 def dedup_files(
     input_files: list[str | Path],
     output_file: str | Path,
@@ -68,53 +96,83 @@ def dedup_files(
     output_file = Path(output_file)
     stats = {"total_input": 0, "unique_texts": 0, "merged_count": 0, "output_count": 0}
 
+    # Pass 1: Build hash → [(file_path, byte_offset)] index
     logger.info("Pass 1: Building text hash index from %d files", len(input_files))
-    hash_to_records: dict[str, list[NerRecord]] = defaultdict(list)
+    hash_index: dict[str, list[tuple[str, int]]] = {}
 
     for fpath in input_files:
         fpath = Path(fpath)
         if not fpath.exists():
             logger.warning("File not found: %s", fpath)
             continue
+        fpath_str = str(fpath)
         with open(fpath) as f:
-            for line in f:
+            while True:
+                offset = f.tell()
+                line = f.readline()
+                if not line:
+                    break
                 line = line.strip()
                 if not line:
                     continue
                 stats["total_input"] += 1
-                try:
-                    rec = NerRecord.from_jsonl(line)
-                    h = text_hash(rec.text)
-                    hash_to_records[h].append(rec)
-                except Exception as e:
-                    logger.warning("Failed to parse record: %s", e)
+                text = _extract_text_fast(line)
+                if text is None:
+                    continue
+                h = text_hash(text)
+                if h not in hash_index:
+                    hash_index[h] = [(fpath_str, offset)]
+                else:
+                    hash_index[h].append((fpath_str, offset))
 
-    stats["unique_texts"] = len(hash_to_records)
+    stats["unique_texts"] = len(hash_index)
     logger.info("Pass 1 complete: %d records, %d unique texts", stats["total_input"], stats["unique_texts"])
 
+    # Pass 2: Write singles through, merge duplicates
     logger.info("Pass 2: Merging duplicates and writing output")
-    with open(output_file, "w") as out:
-        for h, records in hash_to_records.items():
-            if len(records) == 1:
-                rec = records[0]
-                positive_types = set(ent["type"] for ent in rec.entities)
-                negatives = sampler.sample(positive_types, rng=rng)
-                rec.query_types = sorted(positive_types | set(negatives))
-                try:
-                    rec.validate()
-                    out.write(rec.to_jsonl() + "\n")
-                    stats["output_count"] += 1
-                except AssertionError as e:
-                    logger.debug("Validation failed after recompute: %s", e)
-            else:
-                stats["merged_count"] += 1
-                try:
-                    merged = merge_records(records, sampler, rng)
-                    merged.validate()
-                    out.write(merged.to_jsonl() + "\n")
-                    stats["output_count"] += 1
-                except (AssertionError, Exception) as e:
-                    logger.debug("Merge/validation failed: %s", e)
+
+    # Cache open file handles for seek-reads
+    import io
+    file_handles: dict[str, io.TextIOWrapper] = {}
+
+    def read_line_at(fpath: str, offset: int) -> str:
+        if fpath not in file_handles:
+            file_handles[fpath] = open(fpath)
+        fh = file_handles[fpath]
+        fh.seek(offset)
+        return fh.readline().strip()
+
+    try:
+        with open(output_file, "w") as out:
+            for h, locations in hash_index.items():
+                if len(locations) == 1:
+                    fpath, offset = locations[0]
+                    line = read_line_at(fpath, offset)
+                    result = _recompute_negatives(line, sampler, rng)
+                    if result:
+                        out.write(result + "\n")
+                        stats["output_count"] += 1
+                else:
+                    stats["merged_count"] += 1
+                    records = []
+                    for fpath, offset in locations:
+                        line = read_line_at(fpath, offset)
+                        try:
+                            records.append(NerRecord.from_jsonl(line))
+                        except Exception as e:
+                            logger.debug("Failed to parse duplicate record: %s", e)
+                    if not records:
+                        continue
+                    try:
+                        merged = merge_records(records, sampler, rng)
+                        merged.validate()
+                        out.write(merged.to_jsonl() + "\n")
+                        stats["output_count"] += 1
+                    except (AssertionError, Exception) as e:
+                        logger.debug("Merge/validation failed: %s", e)
+    finally:
+        for fh in file_handles.values():
+            fh.close()
 
     logger.info(
         "Dedup complete: %d input → %d unique → %d merged → %d output",

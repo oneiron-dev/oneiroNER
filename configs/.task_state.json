@@ -82,14 +82,14 @@
       "unique_texts": 2729707,
       "merged_duplicates": 439535,
       "train_view_a": 2555975,
-      "train_view_b": 1421811,
-      "train_total": 3977786,
+      "train_view_b": 1421815,
+      "train_total": 3977790,
       "val_view_a": 136403,
       "val_view_b": 74813,
       "val_total": 211216,
       "zero_shot_eval": 37326,
-      "train_chat_examples": 20612654,
-      "val_chat_examples": 1097122
+      "train_chat_examples": 20612883,
+      "val_chat_examples": 1097009
     }
   }
 }

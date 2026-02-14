@@ -53,11 +53,20 @@ def collect_input_files() -> list[Path]:
         else:
             logger.warning("Expected file not found: %s", p)
 
+    skipped_empty = []
     for p in sorted(PROCESSED_DIR.glob(FINERWEB_GLOB)):
+        if p.stat().st_size == 0:
+            skipped_empty.append(p.name)
+            continue
         files.append(p)
     for p in sorted(PROCESSED_DIR.glob(MULTICONER_GLOB)):
+        if p.stat().st_size == 0:
+            skipped_empty.append(p.name)
+            continue
         files.append(p)
 
+    if skipped_empty:
+        logger.info("Skipped %d empty shard files: %s", len(skipped_empty), skipped_empty)
     logger.info("Collected %d input files", len(files))
     return files
 
@@ -209,7 +218,16 @@ def main():
     # Step 1: Run all converters (unless pre-computed)
     if args.skip_converters:
         logger.info("Skipping individual converters (using existing outputs)")
-        converter_stats = {"skipped": True}
+        converter_stats = {"skipped": True, "existing_outputs": {}}
+        for p in sorted(PROCESSED_DIR.glob("*.jsonl")):
+            if p.name in ("train.jsonl", "val.jsonl", "zero_shot_eval.jsonl",
+                          "train_chat.jsonl", "val_chat.jsonl",
+                          "deduped_all.jsonl", "b2nerd_ambiguous.jsonl"):
+                continue
+            with open(p) as f:
+                count = sum(1 for _ in f)
+            converter_stats["existing_outputs"][p.name] = count
+        logger.info("Found %d existing converter outputs", len(converter_stats["existing_outputs"]))
     else:
         converter_stats = run_converters()
 
