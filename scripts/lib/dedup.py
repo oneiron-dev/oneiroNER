@@ -94,7 +94,8 @@ def dedup_files(
 ) -> dict:
     rng = random.Random(seed)
     output_file = Path(output_file)
-    stats = {"total_input": 0, "unique_texts": 0, "merged_count": 0, "output_count": 0}
+    stats = {"total_input": 0, "unique_texts": 0, "merged_count": 0, "output_count": 0,
+             "failed_singles": 0, "failed_merges": 0}
 
     # Pass 1: Build hash → [(file_path, byte_offset)] index
     logger.info("Pass 1: Building text hash index from %d files", len(input_files))
@@ -152,6 +153,9 @@ def dedup_files(
                     if result:
                         out.write(result + "\n")
                         stats["output_count"] += 1
+                    else:
+                        stats["failed_singles"] += 1
+                        logger.warning("Failed to recompute single record from %s@%d", fpath, offset)
                 else:
                     stats["merged_count"] += 1
                     records = []
@@ -169,11 +173,23 @@ def dedup_files(
                         out.write(merged.to_jsonl() + "\n")
                         stats["output_count"] += 1
                     except (AssertionError, Exception) as e:
-                        logger.debug("Merge/validation failed: %s", e)
+                        logger.warning("Merge failed (%d records): %s — falling back to first valid record", len(records), e)
+                        stats["failed_merges"] += 1
+                        for fallback in records:
+                            fb_line = _recompute_negatives(fallback.to_jsonl(), sampler, rng)
+                            if fb_line:
+                                out.write(fb_line + "\n")
+                                stats["output_count"] += 1
+                                break
     finally:
         for fh in file_handles.values():
             fh.close()
 
+    if stats["failed_singles"] or stats["failed_merges"]:
+        logger.warning(
+            "Dedup failures: %d singles, %d merges (fallback attempted)",
+            stats["failed_singles"], stats["failed_merges"],
+        )
     logger.info(
         "Dedup complete: %d input → %d unique → %d merged → %d output",
         stats["total_input"], stats["unique_texts"], stats["merged_count"], stats["output_count"],
