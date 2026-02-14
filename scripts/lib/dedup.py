@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .schema import NerRecord, min_confidence
 from .negative_sampler import NegativeSampler
+from .span_computer import compute_span
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,15 @@ def merge_records(records: list[NerRecord], sampler: NegativeSampler, rng: rando
             if prov not in seen_prov:
                 all_provenance.append(prov)
                 seen_prov.add(prov)
+        needs_realign = rec is not base and rec.text != base.text
         for ent in rec.entities:
+            if needs_realign:
+                if base.text[ent["start"]:ent["end"]] != ent["surface"]:
+                    span = compute_span(base.text, ent["surface"])
+                    if span is None:
+                        logger.debug("Cannot realign entity '%s' to base text, skipping", ent["surface"])
+                        continue
+                    ent = {**ent, "start": span[0], "end": span[1]}
             key = (ent["start"], ent["end"], ent["type"])
             if key not in seen_spans:
                 seen_spans.add(key)

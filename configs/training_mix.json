@@ -126,15 +126,15 @@
     "merged_count": 439535,
     "output_count": 2729707,
     "failed_singles": 0,
-    "failed_merges": 3
+    "failed_merges": 0
   },
   "split_stats": {
     "train_view_a": 2555982,
-    "train_view_b": 1421827,
-    "train_total": 3977809,
+    "train_view_b": 1421821,
+    "train_total": 3977803,
     "val_view_a": 136403,
-    "val_view_b": 74802,
-    "val_total": 211205,
+    "val_view_b": 74803,
+    "val_total": 211206,
     "zero_shot_eval": 37322
   }
 }
