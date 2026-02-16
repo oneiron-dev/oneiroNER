@@ -496,5 +496,6 @@
   "creative goal": "GOAL -> Creative",
   "relationship goal": "GOAL -> Relationship",
   "temporal reference": "TEMPORAL_REF",
-  "relative time": "TEMPORAL_REF"
+  "relative time": "TEMPORAL_REF",
+  "task": "GOAL"
 }
