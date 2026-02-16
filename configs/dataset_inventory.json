@@ -395,6 +395,28 @@
       "status": "ready",
       "notes": "Same sentences as open-ner-standardized but mapped to 3 core types only (PER, LOC, ORG). 66 configs, 52 languages. Total includes train (624,532) + dev (75,416) + test (130,786) across all configs."
     },
+    "french_ner": {
+      "hf_id": "CATIE-AQ/frenchNER_3entities",
+      "local_path": null,
+      "format": "hf_io_tags",
+      "size": {
+        "total": 424803,
+        "train": 349195,
+        "validation": 33464,
+        "test": 42144,
+        "written": 339520
+      },
+      "languages": ["fr"],
+      "entity_types": {
+        "count": 3,
+        "sample": ["PER", "ORG", "LOC"]
+      },
+      "span_info": "IO tags (no B/I distinction): 0=O, 1=PER, 2=ORG, 3=LOC",
+      "confidence": "gold",
+      "license": "CC-BY-4.0",
+      "status": "ready",
+      "notes": "Consolidated from 5 French NER sources (Multiconer, Multinerd, Pii-masking-200k, Wikiann, Wikiner). Deduplicated. 339K records with entities after filtering. Loaded directly via HF datasets library."
+    },
     "finerweb": {
       "hf_id": "whoisjones/fiNERweb",
       "local_path": "data/raw/fiNERweb",
@@ -622,6 +644,50 @@
       "license": "CC-BY-4.0",
       "status": "ready",
       "notes": "93 languages, 235,181 unique entity types across all language files. Extreme granularity: labels include hierarchical paths (e.g. 'location / city'), context-specific values, and multilingual labels in native scripts. One parquet file per language. char_spans has list of {start, end, label} dicts."
+    },
+    "germeval_14": {
+      "hf_id": "GermanEval/germeval_14",
+      "local_path": "data/raw/germeval_14",
+      "format": "tsv_bio",
+      "size": {
+        "total": 31300,
+        "train": 24000,
+        "validation": 2200,
+        "test": 5100,
+        "written": 17029
+      },
+      "languages": ["de"],
+      "entity_types": {
+        "count": 12,
+        "sample": ["PER", "LOC", "ORG", "OTH", "PERderiv", "PERpart", "LOCderiv", "LOCpart", "ORGderiv", "ORGpart", "OTHderiv", "OTHpart"]
+      },
+      "span_info": "TSV with BIO tags plus nested_ner_tags. NoSta-D annotation guidelines with -deriv (derivation) and -part (compound) subtypes. OTH/OTH* types skipped (no canonical mapping).",
+      "confidence": "gold",
+      "license": "CC-BY-SA-4.0",
+      "status": "ready",
+      "notes": "German NER benchmark (GermEval 2014 Shared Task). Wikipedia and news sources. Supports nested NER (not used). 17K records with PER/LOC/ORG entities after filtering OTH-only and empty sentences."
+    },
+    "kor_ner": {
+      "hf_id": "nlp-kmu/kor_ner",
+      "local_path": "data/raw/kor_ner",
+      "format": "custom_annotated",
+      "size": {
+        "total": 3660,
+        "train": 2928,
+        "dev": 366,
+        "test": 366,
+        "written": 3660
+      },
+      "languages": ["ko"],
+      "entity_types": {
+        "count": 5,
+        "sample": ["PS", "OG", "LC", "DT", "TI"]
+      },
+      "span_info": "Custom format: ; line = plain text, $ line = annotated text with <entity:TYPE> markup. Morpheme-level BIO tags with generic I tag.",
+      "confidence": "gold",
+      "license": "MIT",
+      "status": "ready",
+      "notes": "Korean NER from Korea Maritime and Ocean University (KMOUNLP). Expert-annotated since 2016. Entity spans extracted from annotated $ lines. All 3,660 sentences contain entities."
     },
     "klue_ner": {
       "hf_id": "klue/klue",

@@ -34,6 +34,9 @@ CONVERTER_OUTPUTS = [
     "b2nerd_en.jsonl",
     "b2nerd_zh.jsonl",
     "b2nerd_en_other.jsonl",
+    "kor_ner.jsonl",
+    "french_ner.jsonl",
+    "germeval_14.jsonl",
 ]
 
 FINERWEB_GLOB = "finerweb_*.jsonl"
