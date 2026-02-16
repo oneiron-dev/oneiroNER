@@ -91,5 +91,79 @@
       "train_chat_examples": 20613387,
       "val_chat_examples": 1097138
     }
+  },
+  "task_6_phase_a": {
+    "status": "complete",
+    "completed_at": "2026-02-16",
+    "outputs": [
+      "scripts/phase_a_conversationalize.py",
+      "scripts/lib/schema.py (ConversationEntity, ConversationRecord)",
+      "data/labeled/phase_a/b2nerd_conv_en.jsonl",
+      "data/labeled/phase_a/b2nerd_conv_zh.jsonl",
+      "docs/plan/task-6-temporal-subtypes.md"
+    ],
+    "stats": {
+      "total_records": 7259,
+      "en_records": 5211,
+      "zh_records": 2048,
+      "success_rate": "99.99%",
+      "model_distribution_partial": {"sonnet": 349, "codex": 697, "gemini": 155}
+    },
+    "quality_audit": {
+      "method": "Haiku 4.5 evaluation of 30 random EN samples",
+      "avg_naturalness": 3.2,
+      "avg_entity_integration": 3.6,
+      "avg_overall": 3.2,
+      "qa_trap_rate": "17% (5/30)",
+      "score_distribution": {"5": 2, "4": 11, "3": 10, "2": 6, "1": 1},
+      "note": "Codex-generated records are the likely low-scorers. Plan: dilute with 20K+ sonnet/gemini records from remaining B2NERD pool in Task 8 (scale-up), not re-gen existing."
+    }
+  },
+  "task_7": {
+    "status": "in_progress",
+    "started_at": "2026-02-16",
+    "description": "Temporal granularity classifier + View B data sweep",
+    "plan": "docs/impl/task-7-temporal-classifier.md",
+    "worktree": "/tmp/task7-temporal",
+    "branch": "task-7-temporal-classifier",
+    "codex_prompt": "/tmp/task7-temporal/CODEX-PROMPT-unit1.md",
+    "units": {
+      "unit1": "scripts/lib/temporal_classifier.py — regex classifier (45 languages)",
+      "unit2": "tests/test_temporal_classifier.py — unit tests",
+      "unit3": "scripts/convert_all.py — update generate_view_b + build_canonical_sampler",
+      "unit4": "scripts/verify_temporal.py — codex-spark LLM verification"
+    },
+    "vocab_files": {
+      "eu": "/tmp/temporal_vocab_eu.json (23 langs)",
+      "nonlatin": "/tmp/temporal_vocab_nonlatin.json (18 langs)",
+      "merged": "/tmp/task7-temporal/configs/temporal_vocab.json (41 langs + EN/JA/ZH/KO hardcoded = 45)"
+    }
+  },
+  "task_7b": {
+    "status": "pending",
+    "description": "Download + convert new NER datasets (KO/FR/DE/IT)",
+    "datasets_to_download": {
+      "nlp-kmu/kor_ner": {"lang": "ko", "size": "5-8K", "license": "MIT", "priority": "high"},
+      "CATIE-AQ/frenchNER_3entities": {"lang": "fr", "size": "420K", "license": "CC-BY-4.0", "priority": "high"},
+      "tner/multinerd": {"lang": "de,fr,it,es,nl,pl,pt,ru,zh", "size": "1.5M total", "license": "CC-BY-SA-4.0 (verify)", "priority": "high"},
+      "GermanEval/germeval_14": {"lang": "de", "size": "31K", "license": "CC-BY-SA-4.0", "priority": "medium"},
+      "polyglot_ner": {"lang": "ko + 39 others", "size": "unknown", "license": "verify", "priority": "medium"},
+      "danrun/WikiNER-fr-gold": {"lang": "fr", "size": "26K", "license": "verify", "priority": "low (eval only)"}
+    },
+    "excluded": {
+      "Babelscape/wikineural": "CC-BY-NC-SA-4.0 — non-commercial, skip",
+      "KETI-AIR/nikl": "requires NIKL permission, skip for now",
+      "HuiHuang/NER-CoT": "EN only, non-commercial",
+      "KBMC": "medical domain, availability unclear"
+    },
+    "notes": "Run in separate session. Download via datasets library, write converters following existing patterns in scripts/convert_*.py, update dataset_inventory.json, update type_mapping files, re-run convert_all.py"
+  },
+  "task_8": {
+    "status": "pending",
+    "description": "Roleplay dataset NER labeling (JA-Roleplay 4.3K + ChatHaruhi 11.5K) via codex-spark"
+  },
+  "task_9": {
+    "status": "pending",
+    "description": "Scale up B2NERD conversationalization (remaining ~34K records via sonnet/gemini)"
   }
 }
