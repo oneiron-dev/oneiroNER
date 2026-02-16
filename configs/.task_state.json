@@ -140,23 +140,89 @@
     }
   },
   "task_7b": {
+    "status": "complete",
+    "completed_at": "2026-02-16",
+    "description": "Download + convert new NER datasets (KO/FR/DE)",
+    "outputs": [
+      "scripts/convert_kor_ner.py",
+      "scripts/convert_french_ner.py",
+      "scripts/convert_germeval.py",
+      "data/processed/kor_ner.jsonl",
+      "data/processed/french_ner.jsonl",
+      "data/processed/germeval_14.jsonl"
+    ],
+    "stats": {
+      "kor_ner": {"total": 3660, "written": 3660, "entities": 7779, "lang": "ko"},
+      "french_ner": {"total": 424803, "written": 339520, "entities": 542088, "lang": "fr"},
+      "germeval_14": {"total": 31300, "written": 17029, "entities": 33399, "lang": "de"}
+    },
+    "license_verification": {
+      "Babelscape/multinerd": "CC-BY-NC-SA-4.0 — EXCLUDED (non-commercial)",
+      "polyglot_ner": "unknown license — EXCLUDED (unsafe)",
+      "nlp-kmu/kor_ner": "MIT — OK",
+      "CATIE-AQ/frenchNER_3entities": "CC-BY-4.0 — OK",
+      "GermanEval/germeval_14": "CC-BY-SA-4.0 — OK"
+    },
+    "also_updated": [
+      "configs/type_mapping_train.json (added GermEval deriv/part types)",
+      "configs/dataset_inventory.json (3 new entries)",
+      "scripts/convert_all.py (CONVERTER_OUTPUTS list)"
+    ],
+    "notes": "MultiNERD and polyglot_ner excluded after license verification. tner/multinerd is a mirror of Babelscape/multinerd (CC-BY-NC-SA-4.0). Net addition: +360K records (mostly French)."
+  },
+  "task_7c": {
     "status": "pending",
-    "description": "Download + convert new NER datasets (KO/FR/DE/IT)",
-    "datasets_to_download": {
-      "nlp-kmu/kor_ner": {"lang": "ko", "size": "5-8K", "license": "MIT", "priority": "high"},
-      "CATIE-AQ/frenchNER_3entities": {"lang": "fr", "size": "420K", "license": "CC-BY-4.0", "priority": "high"},
-      "tner/multinerd": {"lang": "de,fr,it,es,nl,pl,pt,ru,zh", "size": "1.5M total", "license": "CC-BY-SA-4.0 (verify)", "priority": "high"},
-      "GermanEval/germeval_14": {"lang": "de", "size": "31K", "license": "CC-BY-SA-4.0", "priority": "medium"},
-      "polyglot_ner": {"lang": "ko + 39 others", "size": "unknown", "license": "verify", "priority": "medium"},
-      "danrun/WikiNER-fr-gold": {"lang": "fr", "size": "26K", "license": "verify", "priority": "low (eval only)"}
+    "description": "Expand View B type mapping — full Oneiron ontology + Gemini sweep + heuristics",
+    "rationale": "59% of entities (5.9M) get NO View B copy. Only 68 static mappings for 246K unique types. View B only maps to 5 types but Oneiron has 12+ canonical types.",
+    "canonical_types": {
+      "current_view_b": ["PERSON", "PLACE", "ORG", "DATE", "EMOTION"],
+      "add_tier_1": ["GOAL", "TEMPORAL_REF"],
+      "add_tier_2": ["ACTIVITY", "RELATIONSHIP_REF", "EVENT", "RITUAL"],
+      "skip": ["SKILL_REF — requires runtime context (installed agentskills.io skills)"],
+      "notes": {
+        "RELATIONSHIP_REF": "References to RELATIONSHIP structural entities (rl prefix). E.g. 'my sister', 'our friendship'",
+        "SKILL_REF": "References to installed SKILL entities (sk prefix, agentskills.io). Cannot be trained without runtime context",
+        "TEMPORAL_REF": "Vague/relative time refs. May merge with DATE -> Vague via temporal classifier"
+      }
     },
-    "excluded": {
-      "Babelscape/wikineural": "CC-BY-NC-SA-4.0 — non-commercial, skip",
-      "KETI-AIR/nikl": "requires NIKL permission, skip for now",
-      "HuiHuang/NER-CoT": "EN only, non-commercial",
-      "KBMC": "medical domain, availability unclear"
+    "phases": {
+      "phase_1_gemini_sweep": {
+        "description": "Feed 22K unmapped types (>=10 occurrences, all datasets) to Gemini 1M context. Classify each into Oneiron canonical types (PERSON, PLACE, ORG, DATE, EMOTION, GOAL, ACTIVITY, RELATIONSHIP_REF, EVENT, RITUAL, TEMPORAL_REF).",
+        "method": "Single Gemini pass over all type names + counts",
+        "output": "configs/type_mapping_gemini.json — Gemini-classified type→canonical mappings",
+        "note": "B2NERD types are LLM-generated free-form text — keyword matching misses many (e.g. goals labeled as 'objective', 'aspiration', 'ambition')"
+      },
+      "phase_2_heuristics": {
+        "description": "Build scripts/lib/type_utils.py with keyword heuristics + hierarchy parsing (split on ' -> ' and ' / ') as fallback for non-B2NERD datasets",
+        "estimated_recovery": "1.6M entities (+27% of currently unmapped)",
+        "method": "programmatic, no LLM",
+        "keyword_rules": {
+          "PERSON": ["person", "人", "人物", "人名"],
+          "PLACE": ["location", "地", "place", "城", "country", "city", "facility", "region"],
+          "ORG": ["org", "organization", "公司", "企业", "company", "institution"],
+          "DATE": ["date", "time", "日期", "temporal", "year", "month", "period"],
+          "GOAL": ["goal", "objective", "target", "ambition", "aspiration"],
+          "ACTIVITY": ["activity", "sport", "game", "hobby", "exercise"],
+          "RELATIONSHIP_REF": ["family", "relationship", "partner", "spouse"],
+          "EVENT": ["event", "life event", "death", "birth", "graduation", "wedding", "incident"],
+          "RITUAL": ["ritual", "habit", "routine", "practice"]
+        }
+      },
+      "phase_3_resweep": {
+        "description": "Re-run convert_all.py with expanded type mappings to regenerate View B with all Oneiron types",
+        "note": "Combine with task-7 temporal sweep — single re-run"
+      }
     },
-    "notes": "Run in separate session. Download via datasets library, write converters following existing patterns in scripts/convert_*.py, update dataset_inventory.json, update type_mapping files, re-run convert_all.py"
+    "b2nerd_scan_results": {
+      "TEMPORAL_REF": {"types": 162, "instances": 26104},
+      "ACTIVITY": {"types": 279, "instances": 10721},
+      "EMOTION": {"types": 12, "instances": 313},
+      "RELATIONSHIP_REF": {"types": 82, "instances": 809},
+      "GOAL": {"types": 34, "instances": 204},
+      "RITUAL": {"types": 30, "instances": 168},
+      "EVENT": {"types": 30, "instances": 97, "note": "LIFE_EVENT is a plugin extension of EVENT, not a separate NER type"},
+      "note": "Counts from keyword scan only — Gemini sweep expected to find significantly more"
+    }
   },
   "task_8": {
     "status": "pending",
@@ -164,6 +230,30 @@
   },
   "task_9": {
     "status": "pending",
-    "description": "Scale up B2NERD conversationalization (remaining ~34K records via sonnet/gemini)"
+    "description": "Scale up B2NERD conversationalization + entity augmentation",
+    "phases": {
+      "phase_1_augment_existing": {
+        "description": "Augment existing 7K conversation records with Oneiron entity types",
+        "steps": [
+          "Apply 7c type mappings to existing entities → View B copies (programmatic)",
+          "Gemini pass over 7K records to find NEW entities B2NERD missed (GOAL, RITUAL, LIFE_EVENT, RELATIONSHIP_REF, ACTIVITY, TEMPORAL_REF)",
+          "Merge Gemini-found entities into existing records"
+        ],
+        "note": "Don't re-generate conversations — just augment entity annotations"
+      },
+      "phase_2_generate_new": {
+        "description": "Generate ~34K new conversation records with full Oneiron ontology baked into prompt",
+        "models": ["sonnet", "gemini"],
+        "note": "Updated conversationalization prompt includes GOAL, RITUAL, LIFE_EVENT, RELATIONSHIP_REF, ACTIVITY labels — no second NER pass needed"
+      },
+      "phase_3_integrate": {
+        "description": "Add all conversation data (7K augmented + 34K new) to pipeline",
+        "steps": [
+          "Add to CONVERTER_OUTPUTS in convert_all.py",
+          "Generate View B copies using expanded type mappings",
+          "Include in dedup → split → chat format pipeline"
+        ]
+      }
+    }
   }
 }

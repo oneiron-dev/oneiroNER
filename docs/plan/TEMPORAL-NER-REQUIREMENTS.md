@@ -363,7 +363,7 @@ Beyond the current 5 training types (PERSON, PLACE, ORG, DATE, EMOTION), the fol
 | Type | Why | Temporal role | Training data |
 |---|---|---|---|
 | **RELATIONSHIP_REF** | Interpersonal relationships | Long-duration entities (spanner index) | "my sister", "our friendship" |
-| **SKILL_REF** | Skills/capabilities | Persistent entities | "my Japanese", "coding ability" |
+| **SKILL_REF** | References to installed agent skills (agentskills.io) | Persistent entities | "use the weather skill", "that reminder thing you do" |
 | **LIFE_EVENT** | Major life events | Strong temporal anchors | "when I graduated", "after the divorce" |
 | **RITUAL** | Recurring activities | Periodic temporal patterns | "our weekly meeting", "morning yoga" |
 | **ACTIVITY** | Activities (already in eval) | Event timestamps | "hiking", "cooking", "studying" |
