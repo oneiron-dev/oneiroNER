@@ -1,0 +1,121 @@
+{
+  "dataset": "Emotions Dataset",
+  "total_entities": 131306,
+  "unique_types": 13,
+  "top_30_types": [
+    [
+      "happiness",
+      31205
+    ],
+    [
+      "sadness",
+      17809
+    ],
+    [
+      "neutral",
+      15733
+    ],
+    [
+      "anger",
+      13341
+    ],
+    [
+      "love",
+      10512
+    ],
+    [
+      "fear",
+      8795
+    ],
+    [
+      "disgust",
+      8407
+    ],
+    [
+      "confusion",
+      8209
+    ],
+    [
+      "surprise",
+      4560
+    ],
+    [
+      "shame",
+      4248
+    ],
+    [
+      "guilt",
+      3470
+    ],
+    [
+      "sarcasm",
+      2534
+    ],
+    [
+      "desire",
+      2483
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 0,
+      "top_sources": []
+    },
+    "PLACE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ORG": {
+      "count": 0,
+      "top_sources": []
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 113039,
+      "top_sources": [
+        [
+          "happiness",
+          31205
+        ],
+        [
+          "sadness",
+          17809
+        ],
+        [
+          "anger",
+          13341
+        ],
+        [
+          "love",
+          10512
+        ],
+        [
+          "fear",
+          8795
+        ]
+      ]
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 0,
+      "top_sources": []
+    },
+    "UNMAPPED": {
+      "count": 18267
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "dataset": "Broad Twitter Corpus",
+  "total_entities": 9664,
+  "unique_types": 3,
+  "top_30_types": [
+    [
+      "PER",
+      4039
+    ],
+    [
+      "LOC",
+      3112
+    ],
+    [
+      "ORG",
+      2513
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 4039,
+      "top_sources": [
+        [
+          "PER",
+          4039
+        ]
+      ]
+    },
+    "PLACE": {
+      "count": 3112,
+      "top_sources": [
+        [
+          "LOC",
+          3112
+        ]
+      ]
+    },
+    "ORG": {
+      "count": 2513,
+      "top_sources": [
+        [
+          "ORG",
+          2513
+        ]
+      ]
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 0,
+      "top_sources": []
+    },
+    "UNMAPPED": {
+      "count": 0
+    }
+  }
+}

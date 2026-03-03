@@ -1,0 +1,101 @@
+{
+  "dataset": "XED (English)",
+  "total_entities": 22422,
+  "unique_types": 8,
+  "top_30_types": [
+    [
+      "anticipation",
+      3828
+    ],
+    [
+      "disgust",
+      3400
+    ],
+    [
+      "sadness",
+      2833
+    ],
+    [
+      "neutral",
+      2699
+    ],
+    [
+      "surprise",
+      2464
+    ],
+    [
+      "trust",
+      2442
+    ],
+    [
+      "joy",
+      2439
+    ],
+    [
+      "fear",
+      2317
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 0,
+      "top_sources": []
+    },
+    "PLACE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ORG": {
+      "count": 0,
+      "top_sources": []
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 19723,
+      "top_sources": [
+        [
+          "anticipation",
+          3828
+        ],
+        [
+          "disgust",
+          3400
+        ],
+        [
+          "sadness",
+          2833
+        ],
+        [
+          "surprise",
+          2464
+        ],
+        [
+          "trust",
+          2442
+        ]
+      ]
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 0,
+      "top_sources": []
+    },
+    "UNMAPPED": {
+      "count": 2699
+    }
+  }
+}

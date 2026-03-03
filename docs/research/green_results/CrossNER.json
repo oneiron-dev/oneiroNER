@@ -1,0 +1,180 @@
+{
+  "dataset": "CrossNER",
+  "total_entities": 216835,
+  "unique_types": 19,
+  "top_30_types": [
+    [
+      "person",
+      57210
+    ],
+    [
+      "organisation",
+      55755
+    ],
+    [
+      "location",
+      44655
+    ],
+    [
+      "misc",
+      26590
+    ],
+    [
+      "politician",
+      3500
+    ],
+    [
+      "award",
+      3385
+    ],
+    [
+      "election",
+      2950
+    ],
+    [
+      "politicalparty",
+      2770
+    ],
+    [
+      "scientist",
+      1320
+    ],
+    [
+      "band",
+      1315
+    ],
+    [
+      "writer",
+      1250
+    ],
+    [
+      "book",
+      1220
+    ],
+    [
+      "university",
+      880
+    ],
+    [
+      "album",
+      875
+    ],
+    [
+      "event",
+      805
+    ],
+    [
+      "country",
+      760
+    ],
+    [
+      "astronomicalobject",
+      605
+    ],
+    [
+      "musicalartist",
+      520
+    ],
+    [
+      "algorithm",
+      465
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 63800,
+      "top_sources": [
+        [
+          "person",
+          57210
+        ],
+        [
+          "politician",
+          3500
+        ],
+        [
+          "scientist",
+          1320
+        ],
+        [
+          "writer",
+          1250
+        ],
+        [
+          "musicalartist",
+          520
+        ]
+      ]
+    },
+    "PLACE": {
+      "count": 45415,
+      "top_sources": [
+        [
+          "location",
+          44655
+        ],
+        [
+          "country",
+          760
+        ]
+      ]
+    },
+    "ORG": {
+      "count": 60720,
+      "top_sources": [
+        [
+          "organisation",
+          55755
+        ],
+        [
+          "politicalparty",
+          2770
+        ],
+        [
+          "band",
+          1315
+        ],
+        [
+          "university",
+          880
+        ]
+      ]
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 3755,
+      "top_sources": [
+        [
+          "election",
+          2950
+        ],
+        [
+          "event",
+          805
+        ]
+      ]
+    },
+    "UNMAPPED": {
+      "count": 33140
+    }
+  }
+}

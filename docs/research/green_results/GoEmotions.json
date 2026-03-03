@@ -1,0 +1,181 @@
+{
+  "dataset": "GoEmotions",
+  "total_entities": 51103,
+  "unique_types": 28,
+  "top_30_types": [
+    [
+      "neutral",
+      14219
+    ],
+    [
+      "admiration",
+      4130
+    ],
+    [
+      "approval",
+      2939
+    ],
+    [
+      "gratitude",
+      2662
+    ],
+    [
+      "annoyance",
+      2470
+    ],
+    [
+      "amusement",
+      2328
+    ],
+    [
+      "curiosity",
+      2191
+    ],
+    [
+      "love",
+      2086
+    ],
+    [
+      "disapproval",
+      2022
+    ],
+    [
+      "optimism",
+      1581
+    ],
+    [
+      "anger",
+      1567
+    ],
+    [
+      "joy",
+      1452
+    ],
+    [
+      "confusion",
+      1368
+    ],
+    [
+      "sadness",
+      1326
+    ],
+    [
+      "disappointment",
+      1269
+    ],
+    [
+      "realization",
+      1110
+    ],
+    [
+      "caring",
+      1087
+    ],
+    [
+      "surprise",
+      1060
+    ],
+    [
+      "excitement",
+      853
+    ],
+    [
+      "disgust",
+      793
+    ],
+    [
+      "desire",
+      641
+    ],
+    [
+      "fear",
+      596
+    ],
+    [
+      "remorse",
+      545
+    ],
+    [
+      "embarrassment",
+      303
+    ],
+    [
+      "nervousness",
+      164
+    ],
+    [
+      "relief",
+      153
+    ],
+    [
+      "pride",
+      111
+    ],
+    [
+      "grief",
+      77
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 0,
+      "top_sources": []
+    },
+    "PLACE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ORG": {
+      "count": 0,
+      "top_sources": []
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 36884,
+      "top_sources": [
+        [
+          "admiration",
+          4130
+        ],
+        [
+          "approval",
+          2939
+        ],
+        [
+          "gratitude",
+          2662
+        ],
+        [
+          "annoyance",
+          2470
+        ],
+        [
+          "amusement",
+          2328
+        ]
+      ]
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 0,
+      "top_sources": []
+    },
+    "UNMAPPED": {
+      "count": 14219
+    }
+  }
+}

@@ -1,0 +1,244 @@
+{
+  "dataset": "Few-NERD",
+  "total_entities": 680543,
+  "unique_types": 66,
+  "top_30_types": [
+    [
+      "location-GPE",
+      91196
+    ],
+    [
+      "person-other",
+      50906
+    ],
+    [
+      "organization-other",
+      43392
+    ],
+    [
+      "organization-company",
+      29012
+    ],
+    [
+      "building-other",
+      24834
+    ],
+    [
+      "organization-education",
+      23843
+    ],
+    [
+      "person-artist/author",
+      22287
+    ],
+    [
+      "person-athlete",
+      17527
+    ],
+    [
+      "person-politician",
+      17283
+    ],
+    [
+      "organization-sportsteam",
+      17190
+    ],
+    [
+      "location-other",
+      16434
+    ],
+    [
+      "event-sportsevent",
+      15690
+    ],
+    [
+      "organization-government/governmentagency",
+      14984
+    ],
+    [
+      "location-road/railway/highway/transit",
+      14604
+    ],
+    [
+      "other-award",
+      12001
+    ],
+    [
+      "art-writtenart",
+      11309
+    ],
+    [
+      "product-other",
+      11248
+    ],
+    [
+      "art-music",
+      10907
+    ],
+    [
+      "person-actor",
+      10720
+    ],
+    [
+      "event-attack/battle/war/militaryconflict",
+      10719
+    ],
+    [
+      "event-other",
+      9951
+    ],
+    [
+      "other-biologything",
+      8905
+    ],
+    [
+      "art-film",
+      8431
+    ],
+    [
+      "location-bodiesofwater",
+      8300
+    ],
+    [
+      "organization-media/newspaper",
+      8242
+    ],
+    [
+      "organization-politicalparty",
+      7883
+    ],
+    [
+      "organization-sportsleague",
+      7534
+    ],
+    [
+      "other-law",
+      6281
+    ],
+    [
+      "art-other",
+      6196
+    ],
+    [
+      "art-broadcastprogram",
+      6101
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 118723,
+      "top_sources": [
+        [
+          "person-other",
+          50906
+        ],
+        [
+          "person-artist/author",
+          22287
+        ],
+        [
+          "person-athlete",
+          17527
+        ],
+        [
+          "person-politician",
+          17283
+        ],
+        [
+          "person-actor",
+          10720
+        ]
+      ]
+    },
+    "PLACE": {
+      "count": 155368,
+      "top_sources": [
+        [
+          "location-GPE",
+          91196
+        ],
+        [
+          "building-other",
+          24834
+        ],
+        [
+          "location-other",
+          16434
+        ],
+        [
+          "location-road/railway/highway/transit",
+          14604
+        ],
+        [
+          "location-bodiesofwater",
+          8300
+        ]
+      ]
+    },
+    "ORG": {
+      "count": 152080,
+      "top_sources": [
+        [
+          "organization-other",
+          43392
+        ],
+        [
+          "organization-company",
+          29012
+        ],
+        [
+          "organization-education",
+          23843
+        ],
+        [
+          "organization-sportsteam",
+          17190
+        ],
+        [
+          "organization-government/governmentagency",
+          14984
+        ]
+      ]
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 36360,
+      "top_sources": [
+        [
+          "event-sportsevent",
+          15690
+        ],
+        [
+          "event-attack/battle/war/militaryconflict",
+          10719
+        ],
+        [
+          "event-other",
+          9951
+        ]
+      ]
+    },
+    "UNMAPPED": {
+      "count": 81379
+    }
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "dataset": "BANKING77",
+  "total_entities": 10003,
+  "unique_types": 77,
+  "top_30_types": [
+    [
+      "card_payment_fee_charged",
+      187
+    ],
+    [
+      "direct_debit_payment_not_recognised",
+      182
+    ],
+    [
+      "balance_not_updated_after_cheque_or_cash_deposit",
+      181
+    ],
+    [
+      "wrong_amount_of_cash_received",
+      180
+    ],
+    [
+      "cash_withdrawal_charge",
+      177
+    ],
+    [
+      "transaction_charged_twice",
+      175
+    ],
+    [
+      "declined_cash_withdrawal",
+      173
+    ],
+    [
+      "transfer_fee_charged",
+      172
+    ],
+    [
+      "transfer_not_received_by_recipient",
+      171
+    ],
+    [
+      "balance_not_updated_after_bank_transfer",
+      171
+    ],
+    [
+      "request_refund",
+      169
+    ],
+    [
+      "card_payment_not_recognised",
+      168
+    ],
+    [
+      "card_payment_wrong_exchange_rate",
+      167
+    ],
+    [
+      "extra_charge_on_statement",
+      166
+    ],
+    [
+      "wrong_exchange_rate_for_cash_withdrawal",
+      163
+    ],
+    [
+      "Refund_not_showing_up",
+      162
+    ],
+    [
+      "reverted_card_payment?",
+      161
+    ],
+    [
+      "cash_withdrawal_not_recognised",
+      160
+    ],
+    [
+      "pending_card_payment",
+      159
+    ],
+    [
+      "activate_my_card",
+      159
+    ],
+    [
+      "cancel_transfer",
+      157
+    ],
+    [
+      "beneficiary_not_allowed",
+      156
+    ],
+    [
+      "card_arrival",
+      153
+    ],
+    [
+      "declined_card_payment",
+      153
+    ],
+    [
+      "pending_top_up",
+      149
+    ],
+    [
+      "pending_transfer",
+      148
+    ],
+    [
+      "top_up_reverted",
+      146
+    ],
+    [
+      "top_up_failed",
+      145
+    ],
+    [
+      "pending_cash_withdrawal",
+      143
+    ],
+    [
+      "card_linking",
+      139
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 0,
+      "top_sources": []
+    },
+    "PLACE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ORG": {
+      "count": 0,
+      "top_sources": []
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 0,
+      "top_sources": []
+    },
+    "UNMAPPED": {
+      "count": 4892
+    }
+  }
+}

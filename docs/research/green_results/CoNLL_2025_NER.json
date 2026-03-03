@@ -1,0 +1,157 @@
+{
+  "dataset": "CoNLL 2025 NER",
+  "total_entities": 300476,
+  "unique_types": 18,
+  "top_30_types": [
+    [
+      "ORG",
+      70623
+    ],
+    [
+      "DATE",
+      51874
+    ],
+    [
+      "PERSON",
+      46393
+    ],
+    [
+      "GPE",
+      35172
+    ],
+    [
+      "MONEY",
+      18642
+    ],
+    [
+      "CARDINAL",
+      18087
+    ],
+    [
+      "NORP",
+      12453
+    ],
+    [
+      "PERCENT",
+      11819
+    ],
+    [
+      "WORK_OF_ART",
+      5668
+    ],
+    [
+      "LOC",
+      5156
+    ],
+    [
+      "TIME",
+      5087
+    ],
+    [
+      "QUANTITY",
+      4110
+    ],
+    [
+      "EVENT",
+      3850
+    ],
+    [
+      "FAC",
+      3844
+    ],
+    [
+      "ORDINAL",
+      2767
+    ],
+    [
+      "PRODUCT",
+      2443
+    ],
+    [
+      "LAW",
+      2058
+    ],
+    [
+      "LANGUAGE",
+      430
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 46393,
+      "top_sources": [
+        [
+          "PERSON",
+          46393
+        ]
+      ]
+    },
+    "PLACE": {
+      "count": 44172,
+      "top_sources": [
+        [
+          "GPE",
+          35172
+        ],
+        [
+          "LOC",
+          5156
+        ],
+        [
+          "FAC",
+          3844
+        ]
+      ]
+    },
+    "ORG": {
+      "count": 70623,
+      "top_sources": [
+        [
+          "ORG",
+          70623
+        ]
+      ]
+    },
+    "DATE": {
+      "count": 56961,
+      "top_sources": [
+        [
+          "DATE",
+          51874
+        ],
+        [
+          "TIME",
+          5087
+        ]
+      ]
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 3850,
+      "top_sources": [
+        [
+          "EVENT",
+          3850
+        ]
+      ]
+    },
+    "UNMAPPED": {
+      "count": 78477
+    }
+  }
+}

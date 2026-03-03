@@ -1,0 +1,226 @@
+{
+  "dataset": "MASSIVE (en-US, slots)",
+  "total_entities": 16171,
+  "unique_types": 55,
+  "top_30_types": [
+    [
+      "date",
+      2571
+    ],
+    [
+      "place_name",
+      1576
+    ],
+    [
+      "event_name",
+      1418
+    ],
+    [
+      "person",
+      1215
+    ],
+    [
+      "time",
+      1127
+    ],
+    [
+      "media_type",
+      703
+    ],
+    [
+      "business_name",
+      533
+    ],
+    [
+      "weather_descriptor",
+      461
+    ],
+    [
+      "transport_type",
+      437
+    ],
+    [
+      "food_type",
+      418
+    ],
+    [
+      "relation",
+      352
+    ],
+    [
+      "timeofday",
+      348
+    ],
+    [
+      "artist_name",
+      338
+    ],
+    [
+      "definition_word",
+      319
+    ],
+    [
+      "device_type",
+      318
+    ],
+    [
+      "currency_name",
+      312
+    ],
+    [
+      "list_name",
+      288
+    ],
+    [
+      "house_place",
+      281
+    ],
+    [
+      "news_topic",
+      272
+    ],
+    [
+      "music_genre",
+      268
+    ],
+    [
+      "business_type",
+      254
+    ],
+    [
+      "player_setting",
+      235
+    ],
+    [
+      "song_name",
+      190
+    ],
+    [
+      "radio_name",
+      185
+    ],
+    [
+      "order_type",
+      145
+    ],
+    [
+      "color_type",
+      142
+    ],
+    [
+      "game_name",
+      131
+    ],
+    [
+      "general_frequency",
+      119
+    ],
+    [
+      "audiobook_name",
+      112
+    ],
+    [
+      "podcast_descriptor",
+      102
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 1553,
+      "top_sources": [
+        [
+          "person",
+          1215
+        ],
+        [
+          "artist_name",
+          338
+        ]
+      ]
+    },
+    "PLACE": {
+      "count": 1857,
+      "top_sources": [
+        [
+          "place_name",
+          1576
+        ],
+        [
+          "house_place",
+          281
+        ]
+      ]
+    },
+    "ORG": {
+      "count": 767,
+      "top_sources": [
+        [
+          "business_name",
+          533
+        ],
+        [
+          "radio_name",
+          185
+        ],
+        [
+          "transport_agency",
+          49
+        ]
+      ]
+    },
+    "DATE": {
+      "count": 4165,
+      "top_sources": [
+        [
+          "date",
+          2571
+        ],
+        [
+          "time",
+          1127
+        ],
+        [
+          "timeofday",
+          348
+        ],
+        [
+          "general_frequency",
+          119
+        ]
+      ]
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 352,
+      "top_sources": [
+        [
+          "relation",
+          352
+        ]
+      ]
+    },
+    "EVENT": {
+      "count": 1418,
+      "top_sources": [
+        [
+          "event_name",
+          1418
+        ]
+      ]
+    },
+    "UNMAPPED": {
+      "count": 5107
+    }
+  }
+}

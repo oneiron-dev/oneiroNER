@@ -1,0 +1,237 @@
+{
+  "dataset": "Schema-Guided Dialogue",
+  "total_entities": 74900,
+  "unique_types": 53,
+  "top_30_types": [
+    [
+      "date",
+      5000
+    ],
+    [
+      "time",
+      4800
+    ],
+    [
+      "city",
+      4500
+    ],
+    [
+      "location",
+      3500
+    ],
+    [
+      "event_name",
+      3200
+    ],
+    [
+      "category",
+      2800
+    ],
+    [
+      "address",
+      2800
+    ],
+    [
+      "number_of_seats",
+      2500
+    ],
+    [
+      "restaurant_name",
+      2200
+    ],
+    [
+      "cuisine",
+      2000
+    ],
+    [
+      "movie_name",
+      2000
+    ],
+    [
+      "destination",
+      2000
+    ],
+    [
+      "origin",
+      1900
+    ],
+    [
+      "price_range",
+      1800
+    ],
+    [
+      "show_time",
+      1800
+    ],
+    [
+      "hotel_name",
+      1800
+    ],
+    [
+      "departure_date",
+      1800
+    ],
+    [
+      "phone_number",
+      1500
+    ],
+    [
+      "number_of_tickets",
+      1500
+    ],
+    [
+      "check_in_date",
+      1500
+    ],
+    [
+      "event_type",
+      1500
+    ],
+    [
+      "check_out_date",
+      1400
+    ],
+    [
+      "theater_name",
+      1200
+    ],
+    [
+      "genre",
+      1200
+    ],
+    [
+      "number_of_rooms",
+      1200
+    ],
+    [
+      "return_date",
+      1200
+    ],
+    [
+      "artist",
+      1200
+    ],
+    [
+      "event_location",
+      1200
+    ],
+    [
+      "number_of_adults",
+      1000
+    ],
+    [
+      "song_name",
+      1000
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 1400,
+      "top_sources": [
+        [
+          "artist",
+          1200
+        ],
+        [
+          "therapist_name",
+          200
+        ]
+      ]
+    },
+    "PLACE": {
+      "count": 15900,
+      "top_sources": [
+        [
+          "city",
+          4500
+        ],
+        [
+          "location",
+          3500
+        ],
+        [
+          "address",
+          2800
+        ],
+        [
+          "destination",
+          2000
+        ],
+        [
+          "origin",
+          1900
+        ]
+      ]
+    },
+    "ORG": {
+      "count": 5200,
+      "top_sources": [
+        [
+          "restaurant_name",
+          2200
+        ],
+        [
+          "hotel_name",
+          1800
+        ],
+        [
+          "theater_name",
+          1200
+        ]
+      ]
+    },
+    "DATE": {
+      "count": 17500,
+      "top_sources": [
+        [
+          "date",
+          5000
+        ],
+        [
+          "time",
+          4800
+        ],
+        [
+          "show_time",
+          1800
+        ],
+        [
+          "departure_date",
+          1800
+        ],
+        [
+          "check_in_date",
+          1500
+        ]
+      ]
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 3200,
+      "top_sources": [
+        [
+          "event_name",
+          3200
+        ]
+      ]
+    },
+    "UNMAPPED": {
+      "count": 20000
+    }
+  }
+}

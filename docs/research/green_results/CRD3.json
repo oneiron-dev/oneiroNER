@@ -1,0 +1,53 @@
+{
+  "dataset": "CRD3",
+  "total_entities": 0,
+  "unique_types": 0,
+  "top_30_types": [],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 0,
+      "top_sources": []
+    },
+    "PLACE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ORG": {
+      "count": 0,
+      "top_sources": []
+    },
+    "DATE": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "TEMPORAL_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RITUAL": {
+      "count": 0,
+      "top_sources": []
+    }
+  },
+  "note": "No NER labels. ~398K D&D roleplay turns (CC-BY-SA-4.0). Cols: ['chunk', 'chunk_id', 'turn_start', 'turn_end', 'alignment_score', 'turns']. Needs LLM labeling pass."
+}

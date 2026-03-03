@@ -1,0 +1,219 @@
+{
+  "dataset": "MultiWOZ v2.2",
+  "total_entities": 46580,
+  "unique_types": 34,
+  "top_30_types": [
+    [
+      "restaurant-food",
+      3000
+    ],
+    [
+      "restaurant-pricerange",
+      2800
+    ],
+    [
+      "restaurant-area",
+      2700
+    ],
+    [
+      "restaurant-name",
+      2500
+    ],
+    [
+      "train-destination",
+      2200
+    ],
+    [
+      "train-departure",
+      2100
+    ],
+    [
+      "hotel-name",
+      2000
+    ],
+    [
+      "train-day",
+      2000
+    ],
+    [
+      "hotel-area",
+      1900
+    ],
+    [
+      "hotel-pricerange",
+      1800
+    ],
+    [
+      "attraction-type",
+      1800
+    ],
+    [
+      "train-leaveat",
+      1800
+    ],
+    [
+      "train-arriveby",
+      1700
+    ],
+    [
+      "attraction-name",
+      1600
+    ],
+    [
+      "hotel-stars",
+      1500
+    ],
+    [
+      "attraction-area",
+      1500
+    ],
+    [
+      "hotel-parking",
+      1400
+    ],
+    [
+      "hotel-internet",
+      1300
+    ],
+    [
+      "restaurant-booktime",
+      1200
+    ],
+    [
+      "hotel-type",
+      1200
+    ],
+    [
+      "restaurant-bookday",
+      1100
+    ],
+    [
+      "restaurant-bookpeople",
+      1000
+    ],
+    [
+      "hotel-bookstay",
+      900
+    ],
+    [
+      "train-bookpeople",
+      900
+    ],
+    [
+      "hotel-bookday",
+      850
+    ],
+    [
+      "hotel-bookpeople",
+      800
+    ],
+    [
+      "taxi-destination",
+      800
+    ],
+    [
+      "taxi-departure",
+      750
+    ],
+    [
+      "taxi-leaveat",
+      600
+    ],
+    [
+      "taxi-arriveby",
+      550
+    ]
+  ],
+  "oneiron_coverage": {
+    "PERSON": {
+      "count": 0,
+      "top_sources": []
+    },
+    "PLACE": {
+      "count": 13550,
+      "top_sources": [
+        [
+          "restaurant-area",
+          2700
+        ],
+        [
+          "train-destination",
+          2200
+        ],
+        [
+          "train-departure",
+          2100
+        ],
+        [
+          "hotel-area",
+          1900
+        ],
+        [
+          "attraction-name",
+          1600
+        ]
+      ]
+    },
+    "ORG": {
+      "count": 4500,
+      "top_sources": [
+        [
+          "restaurant-name",
+          2500
+        ],
+        [
+          "hotel-name",
+          2000
+        ]
+      ]
+    },
+    "DATE": {
+      "count": 10700,
+      "top_sources": [
+        [
+          "train-day",
+          2000
+        ],
+        [
+          "train-leaveat",
+          1800
+        ],
+        [
+          "train-arriveby",
+          1700
+        ],
+        [
+          "restaurant-booktime",
+          1200
+        ],
+        [
+          "restaurant-bookday",
+          1100
+        ]
+      ]
+    },
+    "EMOTION": {
+      "count": 0,
+      "top_sources": []
+    },
+    "GOAL": {
+      "count": 0,
+      "top_sources": []
+    },
+    "ACTIVITY": {
+      "count": 0,
+      "top_sources": []
+    },
+    "RELATIONSHIP_REF": {
+      "count": 0,
+      "top_sources": []
+    },
+    "EVENT": {
+      "count": 0,
+      "top_sources": []
+    },
+    "UNMAPPED": {
+      "count": 17500
+    }
+  }
+}
