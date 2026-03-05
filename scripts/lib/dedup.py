@@ -14,7 +14,7 @@ import random
 import unicodedata
 from pathlib import Path
 
-from .schema import NerRecord, min_confidence
+from .schema import NerRecord, ConversationRecord, record_from_jsonl, min_confidence
 from .negative_sampler import NegativeSampler
 from .span_computer import compute_span
 
@@ -29,7 +29,10 @@ def text_hash(text: str) -> str:
 def _extract_text_fast(line: str) -> str | None:
     try:
         d = json.loads(line)
-        return d.get("text")
+        text = d.get("text")
+        if text is None and "turns" in d:
+            text = "\n".join(t["text"] for t in d["turns"])
+        return text
     except (json.JSONDecodeError, KeyError):
         return None
 
@@ -87,7 +90,7 @@ def _recompute_negatives(line: str, sampler: NegativeSampler, rng: random.Random
         positive_types = set(ent["type"] for ent in d["entities"])
         negatives = sampler.sample(positive_types, rng=rng)
         d["query_types"] = sorted(positive_types | set(negatives))
-        rec = NerRecord.from_jsonl(json.dumps(d, ensure_ascii=False))
+        rec = record_from_jsonl(json.dumps(d, ensure_ascii=False))
         rec.validate()
         return rec.to_jsonl()
     except Exception as e:
@@ -167,24 +170,36 @@ def dedup_files(
                         logger.warning("Failed to recompute single record from %s@%d", fpath, offset)
                 else:
                     stats["merged_count"] += 1
-                    records = []
+                    parsed = []
                     for fpath, offset in locations:
                         line = read_line_at(fpath, offset)
                         try:
-                            records.append(NerRecord.from_jsonl(line))
+                            parsed.append(record_from_jsonl(line))
                         except Exception as e:
                             logger.debug("Failed to parse duplicate record: %s", e)
-                    if not records:
+                    if not parsed:
+                        continue
+                    # ConversationRecords: keep first (merge only works for NerRecord)
+                    if isinstance(parsed[0], ConversationRecord):
+                        result = _recompute_negatives(parsed[0].to_jsonl(), sampler, rng)
+                        if result:
+                            out.write(result + "\n")
+                            stats["output_count"] += 1
+                        else:
+                            stats["failed_merges"] += 1
+                        continue
+                    ner_records = [r for r in parsed if isinstance(r, NerRecord)]
+                    if not ner_records:
                         continue
                     try:
-                        merged = merge_records(records, sampler, rng)
+                        merged = merge_records(ner_records, sampler, rng)
                         merged.validate()
                         out.write(merged.to_jsonl() + "\n")
                         stats["output_count"] += 1
                     except (AssertionError, Exception) as e:
-                        logger.warning("Merge failed (%d records): %s — falling back to first valid record", len(records), e)
+                        logger.warning("Merge failed (%d records): %s — falling back to first valid record", len(ner_records), e)
                         stats["failed_merges"] += 1
-                        for fallback in records:
+                        for fallback in ner_records:
                             fb_line = _recompute_negatives(fallback.to_jsonl(), sampler, rng)
                             if fb_line:
                                 out.write(fb_line + "\n")

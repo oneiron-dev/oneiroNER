@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from lib.schema import NerRecord
+from lib.schema import NerRecord, record_from_jsonl
 from lib.negative_sampler import NegativeSampler
 from lib.dedup import dedup_files
 from lib.splitter import stratified_split, apply_zero_shot_stripping, load_holdout_types
@@ -26,6 +26,8 @@ HOLDOUT_PATH = CONFIGS_DIR / "zero_shot_holdout_types.json"
 
 VIEW_B_RATIO = 1.0
 SEED = 42
+
+SILVER_SOURCES = {"task8_", "task9_silver_"}
 
 CONVERTER_OUTPUTS = [
     "stockmark_ner_ja.jsonl",
@@ -68,6 +70,17 @@ def collect_input_files() -> list[Path]:
             continue
         files.append(p)
 
+    for p in sorted(PROCESSED_DIR.glob("task8_*.jsonl")):
+        if p.stat().st_size == 0:
+            skipped_empty.append(p.name)
+            continue
+        files.append(p)
+    for p in sorted(PROCESSED_DIR.glob("task9_silver_*.jsonl")):
+        if p.stat().st_size == 0:
+            skipped_empty.append(p.name)
+            continue
+        files.append(p)
+
     if skipped_empty:
         logger.info("Skipped %d empty shard files: %s", len(skipped_empty), skipped_empty)
     logger.info("Collected %d input files", len(files))
@@ -88,6 +101,10 @@ def generate_view_b(
 ) -> list[NerRecord]:
     view_b = []
     for rec in records:
+        if any(rec.source.startswith(p) for p in SILVER_SOURCES):
+            continue
+        if not isinstance(rec, NerRecord):
+            continue
         mapped_entities = []
         for ent in rec.entities:
             original_type = ent.get("original_type", ent["type"])
@@ -162,14 +179,14 @@ def schema_to_chat(example: dict) -> list[dict]:
     return chat_examples
 
 
-def write_records(records: list[NerRecord], path: Path):
+def write_records(records: list, path: Path):
     with open(path, "w") as f:
         for rec in records:
             f.write(rec.to_jsonl() + "\n")
     logger.info("Wrote %d records to %s", len(records), path)
 
 
-def write_chat(records: list[NerRecord], path: Path):
+def write_chat(records: list, path: Path):
     count = 0
     with open(path, "w") as f:
         for rec in records:
@@ -252,7 +269,7 @@ def main():
         for line in f:
             line = line.strip()
             if line:
-                records.append(NerRecord.from_jsonl(line))
+                records.append(record_from_jsonl(line))
     logger.info("Loaded %d deduped records", len(records))
 
     # Step 5: Split
@@ -273,8 +290,14 @@ def main():
     type_mapping = load_type_mapping()
     sampler_canonical = build_canonical_sampler(type_mapping)
 
-    train_view_b = generate_view_b(train_records, type_mapping, sampler_canonical, rng, VIEW_B_RATIO)
-    val_view_b = generate_view_b(val_records, type_mapping, sampler_canonical, rng, VIEW_B_RATIO)
+    def _is_silver(rec) -> bool:
+        return any(rec.source.startswith(prefix) for prefix in SILVER_SOURCES)
+
+    train_non_silver = [r for r in train_records if not _is_silver(r)]
+    val_non_silver = [r for r in val_records if not _is_silver(r)]
+
+    train_view_b = generate_view_b(train_non_silver, type_mapping, sampler_canonical, rng, VIEW_B_RATIO)
+    val_view_b = generate_view_b(val_non_silver, type_mapping, sampler_canonical, rng, VIEW_B_RATIO)
 
     # Step 8: Combine View A + View B
     train_all = train_records + train_view_b

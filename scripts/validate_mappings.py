@@ -28,8 +28,8 @@ def load_json_check_dupes(path):
     result = json.loads(raw, object_pairs_hook=pair_hook)
     return result, dupes
 
-TRAIN_CANONICAL = {"PERSON", "PLACE", "ORG", "DATE", "EMOTION"}
-EVAL_CANONICAL = TRAIN_CANONICAL | {"ACTIVITY", "OTHER"}
+TRAIN_CANONICAL = {"PERSON", "PLACE", "ORG", "DATE", "EMOTION", "RELATIONSHIP_REF", "EVENT", "GOAL", "ACTIVITY"}
+EVAL_CANONICAL = TRAIN_CANONICAL | {"OTHER"}
 
 REQUIRED_IN_TRAIN = {
     "open_ner_core_types": ["PER", "LOC", "ORG"],
@@ -61,11 +61,11 @@ REQUIRED_IN_TRAIN = {
 
 REQUIRED_IN_EVAL_ONLY = {
     "open_ner_remainder": [
-        "EVENT", "MISC", "CARDINAL", "MONEY", "PERCENT", "ORDINAL",
+        "MISC", "CARDINAL", "MONEY", "PERCENT", "ORDINAL",
         "NORP", "QUANTITY", "LAW", "LANG", "DESIGNATION", "TITLE_AFFIX",
         "RELIGION", "DISEASE", "PRODUCT", "CREATIVE_WORK",
         "PER-DERIV", "LOC-DERIV", "ORG-DERIV", "MISC-DERIV",
-        "ADAGE", "ART", "ART-DERIV", "ART-PART", "CONTACT", "DATETIME",
+        "ADAGE", "ART", "ART-DERIV", "ART-PART", "CONTACT",
         "DERIV", "EVENT-DERIV", "EVENT-PART", "FESTIVAL", "GAME", "GROUP",
         "LANG-DERIV", "LANG-PART", "LITERATURE", "LOC-PART", "MEASURE",
         "MISC-PART", "MOVEMENT", "NON_HUMAN", "NUM", "ORG-PART",
@@ -81,8 +81,8 @@ REQUIRED_IN_EVAL_ONLY = {
     "klue_eval": ["QT"],
     "stockmark_eval": ["イベント名", "製品名"],
     "chinese_ner_sft_eval": ["BANK", "NAME", "疾病和诊断", "解剖部位"],
-    "b2nerd_eval": ["Animal", "Disease", "Chemical", "Activity", "Award", "Event"],
-    "finerweb_eval": ["animal", "disease", "food", "book", "event"],
+    "b2nerd_eval": ["Animal", "Disease", "Chemical", "Award"],
+    "finerweb_eval": ["animal", "disease", "food", "book"],
 }
 
 
@@ -103,19 +103,22 @@ def main():
     print(f"Train entries: {len(train)}")
     print(f"Eval entries:  {len(eval_map)}")
 
-    # Check train values in allowed set
+    # Check train values in allowed set (base type before ' -> ')
     for k, v in train.items():
-        if v not in TRAIN_CANONICAL:
+        base = v.split(" -> ")[0] if " -> " in v else v
+        if base not in TRAIN_CANONICAL:
             errors.append(f"Train: '{k}' → '{v}' not in {TRAIN_CANONICAL}")
 
     # Check eval values in allowed set
     for k, v in eval_map.items():
-        if v not in EVAL_CANONICAL:
+        base = v.split(" -> ")[0] if " -> " in v else v
+        if base not in EVAL_CANONICAL:
             errors.append(f"Eval: '{k}' → '{v}' not in {EVAL_CANONICAL}")
 
-    # Train must NOT contain OTHER or ACTIVITY
+    # Train must NOT contain OTHER
     for k, v in train.items():
-        if v in ("OTHER", "ACTIVITY"):
+        base = v.split(" -> ")[0] if " -> " in v else v
+        if base in ("OTHER",):
             errors.append(f"Train contains forbidden canonical type: '{k}' → '{v}'")
 
     # Train is proper subset of eval (train ⊂ eval)
