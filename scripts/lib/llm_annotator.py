@@ -1,4 +1,4 @@
-"""Shared LLM annotation harness for NER labeling via OpenCode CLI."""
+"""Shared LLM annotation harness for NER labeling via OpenCode CLI + Gemini."""
 
 import json
 import logging
@@ -46,19 +46,32 @@ def _get_model(provider: str) -> str:
     return os.environ.get("OPENCODE_MODEL", _DEFAULT_MODEL)
 
 
-def _parse_opencode_jsonl(raw: str) -> str:
+def _parse_opencode_jsonl(raw: str) -> tuple[str, bool]:
+    """Parse OpenCode JSON event stream. Returns (text, content_filtered)."""
     parts = []
+    content_filtered = False
     for line in raw.splitlines():
         line = line.strip()
         if not line:
             continue
         try:
             evt = json.loads(line)
-            if evt.get("type") == "text" and "text" in evt:
-                parts.append(evt["text"])
+            if not isinstance(evt, dict):
+                continue
+            if evt.get("type") == "text":
+                part = evt.get("part", {})
+                if isinstance(part, dict) and "text" in part:
+                    parts.append(part["text"])
+                elif "text" in evt:
+                    parts.append(evt["text"])
+            elif evt.get("type") == "step_finish":
+                part = evt.get("part", {})
+                if isinstance(part, dict) and part.get("reason") == "content-filter":
+                    content_filtered = True
         except json.JSONDecodeError:
             continue
-    return "".join(parts) if parts else raw
+    text = "".join(parts) if parts else ""
+    return text, content_filtered
 
 
 def _clean_llm_output(raw: str) -> list[dict] | None:
@@ -86,30 +99,59 @@ def _clean_llm_output(raw: str) -> list[dict] | None:
     return None
 
 
-def _call_opencode(prompt: str, model: str, timeout: int = 120) -> str | None:
+def _call_opencode(prompt: str, model: str, timeout: int = 120) -> tuple[str | None, bool]:
+    """Returns (parsed_text, content_filtered)."""
     try:
         r = subprocess.run(
-            [OPENCODE_BIN, "run", "-m", model, prompt],
+            [OPENCODE_BIN, "run", "-m", model, "--format", "json", "-"],
+            input=prompt,
             capture_output=True,
             text=True,
             timeout=timeout,
         )
         if r.returncode != 0:
             logger.warning("opencode failed (rc=%d): %s", r.returncode, r.stderr[:200])
-            return None
+            return None, False
         raw = r.stdout.strip()
-        return _parse_opencode_jsonl(raw)
+        parsed, content_filtered = _parse_opencode_jsonl(raw)
+        if content_filtered:
+            logger.debug("opencode content-filtered")
+            return None, True
+        if not parsed:
+            logger.debug("opencode empty response")
+            return None, False
+        return parsed, False
     except subprocess.TimeoutExpired:
         logger.warning("opencode timed out (%ds)", timeout)
-        return None
+        return None, False
     except Exception as e:
         logger.warning("opencode error: %s", e)
+        return None, False
+
+
+def _call_gemini(prompt: str, timeout: int = 120) -> str | None:
+    try:
+        r = subprocess.run(
+            ["gemini", "-p", "", "--yolo", "-o", "text"],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if r.returncode != 0:
+            logger.debug("gemini failed (rc=%d): %s", r.returncode, r.stderr[:200])
+            return None
+        return r.stdout.strip()
+    except subprocess.TimeoutExpired:
+        logger.debug("gemini timed out")
+        return None
+    except Exception as e:
+        logger.debug("gemini error: %s", e)
         return None
 
 
 def _build_passage_prompt(text: str) -> str:
-    text_block = text
-    return NER_PROMPT.format(text_block=text_block, turn_instruction="")
+    return NER_PROMPT.format(text_block=text, turn_instruction="")
 
 
 def _build_conversation_prompt(turns: list[dict]) -> str:
@@ -134,37 +176,51 @@ def _validate_entity(ent: dict, is_conversation: bool) -> bool:
     return True
 
 
-def annotate_passage(
-    text: str, language: str, provider: str = "spark", timeout: int = 120
-) -> list[dict]:
-    prompt = _build_passage_prompt(text)
-    model = _get_model(provider)
+def _annotate(prompt: str, is_conversation: bool, provider: str, timeout: int) -> list[dict]:
+    if provider == "gemini":
+        raw = _call_gemini(prompt, timeout=timeout)
+        if raw is None:
+            return []
+        entities = _clean_llm_output(raw)
+        if entities is None:
+            logger.warning("Failed to parse Gemini output: %s", raw[:200])
+            return []
+        return [e for e in entities if _validate_entity(e, is_conversation)]
 
-    raw = _call_opencode(prompt, model, timeout=timeout)
+    model = _get_model(provider)
+    raw, content_filtered = _call_opencode(prompt, model, timeout=timeout)
+
+    if content_filtered:
+        logger.debug("Content-filtered by OpenCode, falling back to Gemini")
+        raw = _call_gemini(prompt, timeout=timeout)
+        if raw is None:
+            return []
+        entities = _clean_llm_output(raw)
+        if entities is None:
+            logger.warning("Failed to parse Gemini fallback output: %s", raw[:200])
+            return []
+        return [e for e in entities if _validate_entity(e, is_conversation)]
+
     if raw is None:
         return []
 
     entities = _clean_llm_output(raw)
     if entities is None:
-        logger.warning("Failed to parse LLM output for passage annotation")
+        logger.warning("Failed to parse LLM output: %s", raw[:200])
         return []
 
-    return [e for e in entities if _validate_entity(e, is_conversation=False)]
+    return [e for e in entities if _validate_entity(e, is_conversation)]
+
+
+def annotate_passage(
+    text: str, language: str, provider: str = "spark", timeout: int = 120
+) -> list[dict]:
+    prompt = _build_passage_prompt(text)
+    return _annotate(prompt, is_conversation=False, provider=provider, timeout=timeout)
 
 
 def annotate_conversation(
     turns: list[dict], language: str, provider: str = "spark", timeout: int = 120
 ) -> list[dict]:
     prompt = _build_conversation_prompt(turns)
-    model = _get_model(provider)
-
-    raw = _call_opencode(prompt, model, timeout=timeout)
-    if raw is None:
-        return []
-
-    entities = _clean_llm_output(raw)
-    if entities is None:
-        logger.warning("Failed to parse LLM output for conversation annotation")
-        return []
-
-    return [e for e in entities if _validate_entity(e, is_conversation=True)]
+    return _annotate(prompt, is_conversation=True, provider=provider, timeout=timeout)

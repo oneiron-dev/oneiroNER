@@ -5,7 +5,9 @@ import argparse
 import json
 import logging
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -13,6 +15,7 @@ from lib.llm_annotator import annotate_conversation, annotate_passage
 from lib.passage_chunker import chunk_passage
 from lib.span_fixer import verify_and_fix_spans
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
 
 FILTERED_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "silver_filtered"
@@ -20,16 +23,19 @@ OUT_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "silv
 CHECKPOINT_DIR = OUT_DIR / ".checkpoints"
 
 ALL_SOURCES = [
-    "reddit_confessions", "opencharacter", "therapy_conversations",
-    "prosocial_dialog", "personachat", "pippa",
-    "synthetic_persona_chat", "roleplay_hieu", "mentalchat",
+    "mentalchat", "therapy_conversations", "roleplay_hieu",
+    "synthetic_persona_chat", "personachat", "prosocial_dialog",
+    "pippa", "opencharacter", "reddit_confessions",
 ]
 
 FLAG_MIN_ENTITIES = 0
 FLAG_MAX_ENTITIES = 10
 
 MAX_RETRIES = 3
-BACKOFF_BASE = 30  # seconds; doubles each retry (30, 60, 120)
+BACKOFF_BASE = 30
+
+write_lock = threading.Lock()
+checkpoint_lock = threading.Lock()
 
 
 def load_checkpoint(source: str) -> set[str]:
@@ -41,10 +47,11 @@ def load_checkpoint(source: str) -> set[str]:
 
 
 def save_checkpoint(source: str, processed_ids: set[str]):
-    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-    cp_path = CHECKPOINT_DIR / f"{source}.json"
-    with open(cp_path, "w") as f:
-        json.dump(sorted(processed_ids), f)
+    with checkpoint_lock:
+        CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+        cp_path = CHECKPOINT_DIR / f"{source}.json"
+        with open(cp_path, "w") as f:
+            json.dump(sorted(processed_ids), f)
 
 
 def annotate_passage_chunked(text: str, language: str, provider: str) -> list[dict]:
@@ -89,6 +96,7 @@ def process_record(rec: dict, provider: str) -> dict:
     rec["entities"] = fixed
     rec["annotation_stats"] = stats
     rec["flagged"] = is_flagged(fixed)
+    rec["has_entities"] = len(fixed) > 0
     return rec
 
 
@@ -106,7 +114,12 @@ def process_record_with_retry(rec: dict, provider: str) -> dict | None:
                     continue
                 logger.error("Rate limited after %d retries, skipping record", MAX_RETRIES + 1)
                 return None
-            raise
+            if attempt < MAX_RETRIES:
+                logger.debug("Annotation error (attempt %d): %s", attempt + 1, e)
+                time.sleep(2)
+                continue
+            logger.warning("Annotation failed after retries: %s", e)
+            return None
 
 
 def process_source(
@@ -114,12 +127,11 @@ def process_source(
     limit: int | None,
     resume: bool,
     concurrency: int,
-    quality_pass: bool,
     provider: str,
 ):
     in_path = FILTERED_DIR / f"{source}.jsonl"
     if not in_path.exists():
-        print(f"  Skipping {source}: no filtered file", file=sys.stderr)
+        logger.warning("Skipping %s: no filtered file at %s", source, in_path)
         return
 
     out_path = OUT_DIR / f"{source}.jsonl"
@@ -134,75 +146,65 @@ def process_source(
             sid = rec.get("source_id", str(i))
             if sid in processed_ids:
                 continue
+            rec["_sid"] = sid
             records.append(rec)
 
     if not records:
-        print(f"  {source}: nothing to process (all checkpointed)")
+        logger.info("%s: nothing to process (all checkpointed)", source)
         return
+
+    logger.info("%s: %d records to annotate (concurrency=%d, provider=%s)", source, len(records), concurrency, provider)
 
     mode = "a" if resume else "w"
+    fh = open(out_path, mode)
     written = 0
-    flagged_count = 0
+    failed = 0
+    start_time = time.time()
 
-    with open(out_path, mode) as fout:
-        for rec in records:
-            result = process_record_with_retry(rec, provider)
-            if result is None:
-                save_checkpoint(source, processed_ids)
-                print(f"  {source}: stopped at {written}/{len(records)} due to rate limit. Use --resume to continue.")
-                return
-            processed_ids.add(rec.get("source_id", ""))
+    def worker(rec: dict) -> dict | None:
+        return process_record_with_retry(rec, provider)
 
-            fout.write(json.dumps(result, ensure_ascii=False) + "\n")
-            written += 1
-            if result.get("flagged"):
-                flagged_count += 1
-
-            if written % 100 == 0:
-                save_checkpoint(source, processed_ids)
-                print(f"    ...{written}/{len(records)} (flagged: {flagged_count})")
-
-    save_checkpoint(source, processed_ids)
-    print(f"  {source}: {written} annotated, {flagged_count} flagged")
-
-    if quality_pass and flagged_count > 0:
-        run_quality_pass(source, out_path, provider="codex")
-
-
-def run_quality_pass(source: str, annotated_path: Path, provider: str = "codex"):
-    print(f"  {source}: running quality pass on flagged records...")
-    records = []
-    with open(annotated_path) as f:
-        for line in f:
-            rec = json.loads(line)
-            if rec.get("flagged"):
-                records.append(rec)
-
-    if not records:
-        return
-
-    reannotated = 0
-    all_records = []
-    with open(annotated_path) as f:
-        for line in f:
-            rec = json.loads(line)
-            if rec.get("flagged"):
-                result = process_record_with_retry(rec, provider)
-                if result is None:
-                    all_records.append(rec)
+    try:
+        with ThreadPoolExecutor(max_workers=concurrency) as executor:
+            futures = {executor.submit(worker, rec): rec for rec in records}
+            for future in as_completed(futures):
+                rec = futures[future]
+                sid = rec["_sid"]
+                try:
+                    result = future.result()
+                except Exception as e:
+                    logger.warning("Worker error for %s: %s", sid, e)
+                    failed += 1
                     continue
-                result["flagged"] = False
-                result["quality_pass"] = True
-                reannotated += 1
-                all_records.append(result)
-            else:
-                all_records.append(rec)
 
-    with open(annotated_path, "w") as fout:
-        for rec in all_records:
-            fout.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                if result is None:
+                    failed += 1
+                    continue
 
-    print(f"  {source}: quality pass reannotated {reannotated} records")
+                with write_lock:
+                    result.pop("_sid", None)
+                    fh.write(json.dumps(result, ensure_ascii=False) + "\n")
+                    fh.flush()
+                    processed_ids.add(sid)
+                    written += 1
+
+                if written % 100 == 0:
+                    elapsed = time.time() - start_time
+                    rate = written / elapsed if elapsed > 0 else 0
+                    logger.info(
+                        "%s: %d/%d written, %d failed | %.1f rec/min",
+                        source, written, len(records), failed, rate * 60,
+                    )
+                    save_checkpoint(source, processed_ids)
+    finally:
+        fh.close()
+        save_checkpoint(source, processed_ids)
+
+    elapsed = time.time() - start_time
+    logger.info(
+        "%s: DONE — %d written, %d failed (%.0fs, %.1f rec/min)",
+        source, written, failed, elapsed, written / elapsed * 60 if elapsed > 0 else 0,
+    )
 
 
 def main():
@@ -210,25 +212,22 @@ def main():
     parser.add_argument("--source", default="all", help="Source name or 'all'")
     parser.add_argument("--limit", type=int, default=None, help="Limit records per source")
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint")
-    parser.add_argument("--concurrency", type=int, default=5, help="Concurrency limit (reserved for async)")
-    parser.add_argument("--quality-pass", action="store_true", help="Run codex quality pass on flagged records")
-    parser.add_argument("--provider", default="spark", choices=["spark", "codex"], help="LLM provider")
+    parser.add_argument("--concurrency", type=int, default=5, help="Worker threads")
+    parser.add_argument("--provider", default="spark", choices=["spark", "codex", "gemini"], help="LLM provider")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     sources = ALL_SOURCES if args.source == "all" else [args.source]
     for s in sources:
         if s not in ALL_SOURCES:
-            print(f"Unknown source: {s}", file=sys.stderr)
+            logger.error("Unknown source: %s", s)
             sys.exit(1)
 
     for s in sources:
-        print(f"Annotating {s}...")
-        process_source(s, args.limit, args.resume, args.concurrency, args.quality_pass, args.provider)
+        process_source(s, args.limit, args.resume, args.concurrency, args.provider)
 
-    print("\nDone. Output:", OUT_DIR)
+    logger.info("All sources complete. Output: %s", OUT_DIR)
 
 
 if __name__ == "__main__":
