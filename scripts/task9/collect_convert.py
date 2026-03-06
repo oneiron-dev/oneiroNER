@@ -45,6 +45,17 @@ CANONICAL_TYPES = {
 }
 
 
+_PRONOUNS = {
+    "i", "me", "my", "mine", "myself",
+    "you", "your", "yours", "yourself",
+    "he", "him", "his", "himself",
+    "she", "her", "hers", "herself",
+    "it", "its", "itself",
+    "we", "us", "our", "ours", "ourselves",
+    "they", "them", "their", "theirs", "themselves",
+}
+
+
 def normalize_entity_type(raw_type: str) -> str | None:
     """Normalize entity type to canonical form. Returns None if not a valid type."""
     t = raw_type.replace(":", "/")
@@ -54,6 +65,10 @@ def normalize_entity_type(raw_type: str) -> str | None:
     if base in CANONICAL_TYPES:
         return t if t in CANONICAL_TYPES else base
     return None
+
+
+def is_pronoun(surface: str) -> bool:
+    return surface.strip().lower() in _PRONOUNS
 
 
 def dedup_entities(entities: list[dict]) -> list[dict]:
@@ -75,6 +90,8 @@ def build_entity_dicts(entities: list[dict], is_conversation: bool) -> list[dict
     for ent in entities:
         canonical = normalize_entity_type(ent["type"])
         if canonical is None:
+            continue
+        if is_pronoun(ent["surface"]):
             continue
         d = {
             "surface": ent["surface"],
