@@ -232,18 +232,18 @@ LANG_CONFIG = {
 }
 
 
-def build_prompt(lang: str, count: int = 10, mode: str = "tuning", batch_num: int = 1) -> str:
+def build_prompt(lang: str, count: int = 10, mode: str = "tuning", batch_num: int = 1, provider: str = "claude") -> str:
     cfg = LANG_CONFIG[lang]
     name = cfg["name"]
 
     if mode == "tuning":
-        id_prefix = f"{lang}_claude_t"
+        id_prefix = f"{lang}_{provider}_t"
         id_range = f"{id_prefix}_001 through {id_prefix}_{count:03d}"
-        out_file = f"/home/ubuntu/projects/oneiron-ner/data/raw/silver_synthetic/{lang}_claude_tuning.jsonl"
+        out_file = f"/home/ubuntu/projects/oneiron-ner/data/raw/silver_synthetic/{lang}_{provider}_tuning.jsonl"
     else:
-        id_prefix = f"{lang}_claude_b{batch_num}"
+        id_prefix = f"{lang}_{provider}_b{batch_num}"
         id_range = f"{id_prefix}_001 through {id_prefix}_{count:03d}"
-        out_file = f"/home/ubuntu/projects/oneiron-ner/data/raw/silver_synthetic/{lang}_claude_batch{batch_num}.jsonl"
+        out_file = f"/home/ubuntu/projects/oneiron-ner/data/raw/silver_synthetic/{lang}_{provider}_batch{batch_num}.jsonl"
 
     script_notes = ""
     if cfg["script"] in ("bengali", "tamil", "telugu", "malayalam", "gurmukhi"):
@@ -258,11 +258,15 @@ def build_prompt(lang: str, count: int = 10, mode: str = "tuning", batch_num: in
 
     extra = f"\n{cfg['notes']}" if cfg.get("notes") else ""
 
+    provider_note = ""
+    if provider == "gpt54":
+        provider_note = "\n\nIMPORTANT: Use PROPER Unicode characters for this language. Do NOT use ASCII substitutes for accented/special characters. Write the output file using the Write tool, then verify with Bash."
+
     return f"""Generate exactly {count} {name} ({lang}) NER-annotated conversations and save to `{out_file}`.
 
 ## JSONL Format (one JSON per line, {count} lines total)
 ```json
-{{"source": "synthetic_{lang}_claude", "source_id": "{id_prefix}_001", "language": "{lang}", "format": "conversation", "turns": [{{"speaker": "A", "text": "..."}}, {{"speaker": "B", "text": "..."}}], "entities": [{{"surface": "...", "type": "...", "start": 0, "end": 5, "turn_index": 0}}]}}
+{{"source": "synthetic_{lang}_{provider}", "source_id": "{id_prefix}_001", "language": "{lang}", "format": "conversation", "turns": [{{"speaker": "A", "text": "..."}}, {{"speaker": "B", "text": "..."}}], "entities": [{{"surface": "...", "type": "...", "start": 0, "end": 5, "turn_index": 0}}]}}
 ```
 source_id: {id_range}.
 
@@ -297,7 +301,7 @@ with open(path) as f:
                 bad += 1
 print(f"\\n{{total}} entities, {{bad}} bad offsets, {{sum(1 for _ in open(path))}} records")
 ```
-Fix and re-verify until 0 bad offsets. Do NOT proceed until clean."""
+Fix and re-verify until 0 bad offsets. Do NOT proceed until clean.{provider_note}"""
 
 
 ALL_NEW_LANGS = list(LANG_CONFIG.keys())
@@ -310,4 +314,5 @@ if __name__ == "__main__":
     lang = sys.argv[1] if len(sys.argv) > 1 else "da"
     count = int(sys.argv[2]) if len(sys.argv) > 2 else 10
     mode = sys.argv[3] if len(sys.argv) > 3 else "tuning"
-    print(build_prompt(lang, count, mode))
+    provider = sys.argv[4] if len(sys.argv) > 4 else "claude"
+    print(build_prompt(lang, count, mode, provider=provider))

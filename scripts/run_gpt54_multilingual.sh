@@ -37,15 +37,8 @@ for LANG in $LANGS; do
 
     echo "=== Generating $LANG ($MODE, $COUNT convos) ==="
 
-    # Use the prompt template generator
-    PROMPT=$(python3 /home/ubuntu/projects/oneiron-ner/scripts/multilingual_prompt_templates.py "$LANG" "$COUNT" "$MODE")
-    # Replace claude references with gpt54
-    PROMPT=$(echo "$PROMPT" | sed "s/synthetic_${LANG}_claude/synthetic_${LANG}_gpt54/g" | sed "s/${LANG}_claude_/${LANG}_gpt54_/g")
-
-    # Add GPT-5.4-specific instructions
-    PROMPT="$PROMPT
-
-IMPORTANT: Use PROPER Unicode characters for this language. Do NOT use ASCII substitutes for accented/special characters. Write the output file using the Write tool, then verify with Bash."
+    # Use the prompt template generator with gpt54 provider
+    PROMPT=$(python3 /home/ubuntu/projects/oneiron-ner/scripts/multilingual_prompt_templates.py "$LANG" "$COUNT" "$MODE" "gpt54")
 
     opencode run -m "openai/gpt-5.4" --format json "$PROMPT" 2>&1 | tail -5
 
