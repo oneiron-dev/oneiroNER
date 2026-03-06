@@ -230,6 +230,15 @@ _OPENROUTER_PROVIDERS = {
     "quantizations": ["fp8"],
 }
 
+_CANONICAL_TYPES = [
+    "PERSON", "PLACE", "ORG", "EVENT", "EMOTION", "GOAL", "ACTIVITY",
+    "DATE", "DATE/Day", "DATE/Week", "DATE/Month", "DATE/Season",
+    "DATE/Year", "DATE/Decade", "DATE/Relative", "DATE/Range",
+    "RELATIONSHIP_REF", "RELATIONSHIP_REF/Family", "RELATIONSHIP_REF/Romantic",
+    "RELATIONSHIP_REF/Friend", "RELATIONSHIP_REF/Professional",
+    "RELATIONSHIP_REF/Acquaintance",
+]
+
 _OPENROUTER_SCHEMA = {
     "type": "json_schema",
     "json_schema": {
@@ -244,7 +253,7 @@ _OPENROUTER_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "surface": {"type": "string"},
-                            "type": {"type": "string"},
+                            "type": {"type": "string", "enum": _CANONICAL_TYPES},
                             "start": {"type": "integer"},
                             "end": {"type": "integer"},
                         },
@@ -273,7 +282,7 @@ _OPENROUTER_CONV_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "surface": {"type": "string"},
-                            "type": {"type": "string"},
+                            "type": {"type": "string", "enum": _CANONICAL_TYPES},
                             "start": {"type": "integer"},
                             "end": {"type": "integer"},
                             "turn_index": {"type": "integer"},

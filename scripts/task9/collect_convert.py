@@ -34,6 +34,28 @@ SILVER_TYPE_COUNTS = {
 }
 
 
+CANONICAL_TYPES = {
+    "PERSON", "PLACE", "ORG", "EVENT", "EMOTION", "GOAL", "ACTIVITY",
+    "DATE", "DATE/Day", "DATE/Week", "DATE/Month", "DATE/Season",
+    "DATE/Year", "DATE/Decade", "DATE/Relative", "DATE/Range",
+    "RELATIONSHIP_REF",
+    "RELATIONSHIP_REF/Family", "RELATIONSHIP_REF/Romantic",
+    "RELATIONSHIP_REF/Friend", "RELATIONSHIP_REF/Professional",
+    "RELATIONSHIP_REF/Acquaintance",
+}
+
+
+def normalize_entity_type(raw_type: str) -> str | None:
+    """Normalize entity type to canonical form. Returns None if not a valid type."""
+    t = raw_type.replace(":", "/")
+    if t in CANONICAL_TYPES:
+        return t
+    base = t.split("/")[0] if "/" in t else t
+    if base in CANONICAL_TYPES:
+        return t if t in CANONICAL_TYPES else base
+    return None
+
+
 def dedup_entities(entities: list[dict]) -> list[dict]:
     seen = set()
     deduped = []
@@ -51,9 +73,12 @@ def dedup_entities(entities: list[dict]) -> list[dict]:
 def build_entity_dicts(entities: list[dict], is_conversation: bool) -> list[dict]:
     result = []
     for ent in entities:
+        canonical = normalize_entity_type(ent["type"])
+        if canonical is None:
+            continue
         d = {
             "surface": ent["surface"],
-            "type": ent["type"],
+            "type": canonical,
             "original_type": ent["type"],
             "start": ent["start"],
             "end": ent["end"],

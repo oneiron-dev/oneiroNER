@@ -226,7 +226,7 @@ def process_source(
                 pbar.set_postfix(ok=written, fail=failed)
                 pbar.update(1)
 
-                if written % 100 == 0:
+                if written % 10 == 0:
                     save_checkpoint(source, processed_ids)
     finally:
         pbar.close()
@@ -246,7 +246,7 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="Limit records per source")
     parser.add_argument("--resume", action="store_true", help="(deprecated, always resumes)")
     parser.add_argument("--repair", action="store_true", help="Rebuild checkpoints from output files (only keep records with entities)")
-    parser.add_argument("--concurrency", type=int, default=5, help="Worker threads")
+    parser.add_argument("--concurrency", type=int, default=25, help="Worker threads")
     parser.add_argument("--provider", default="spark", choices=["spark", "codex", "gemini", "claude", "claude_cli", "deepseek", "rotate", "codex5", "mini"], help="LLM provider")
     parser.add_argument("--timeout", type=int, default=120, help="Per-call timeout in seconds")
     args = parser.parse_args()
