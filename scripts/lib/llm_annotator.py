@@ -1,12 +1,21 @@
 """Shared LLM annotation harness for NER labeling via OpenCode CLI + Gemini."""
 
+import itertools
 import json
 import logging
 import os
 import re
 import subprocess
+import threading
 
 logger = logging.getLogger(__name__)
+
+_ROTATE_MODELS = [
+    "openai/gpt-5-codex",
+    "openai/gpt-5.1-codex-mini",
+]
+_rotate_idx = itertools.count()
+_rotate_lock = threading.Lock()
 
 OPENCODE_BIN = "/home/ubuntu/.opencode/bin/opencode"
 
@@ -14,7 +23,7 @@ _DEFAULT_MODEL = "openai/gpt-5.3-codex-spark"
 _CODEX_MODEL = "openai/gpt-5.3-codex"
 
 NER_PROMPT = """\
-You are an expert NER annotator. Think step-by-step internally before outputting labels.
+You are an expert NER annotator. Output ONLY the JSON array — no reasoning, no explanation, no markdown.
 
 {text_block}
 
@@ -34,15 +43,24 @@ Entity types:
 
 Offsets: 0-indexed Unicode chars, end-exclusive, Python slicing (text[start:end] == surface).
 
-Return ONLY a JSON array:
+Return ONLY a JSON array (no other text):
 [{{"surface": "my mom", "type": "RELATIONSHIP_REF/Family", "start": 7, "end": 13}}]
 {turn_instruction}\
 If none found, return []."""
 
 
+_CLAUDE_MODEL = "anthropic/claude-sonnet-4-20250514"
+
+
 def _get_model(provider: str) -> str:
     if provider == "codex":
         return os.environ.get("OPENCODE_MODEL_CODEX", _CODEX_MODEL)
+    if provider == "claude":
+        return os.environ.get("OPENCODE_MODEL_CLAUDE", _CLAUDE_MODEL)
+    if provider == "codex5":
+        return "openai/gpt-5-codex"
+    if provider == "mini":
+        return "openai/gpt-5.1-codex-mini"
     return os.environ.get("OPENCODE_MODEL", _DEFAULT_MODEL)
 
 
@@ -176,7 +194,7 @@ def _validate_entity(ent: dict, is_conversation: bool) -> bool:
     return True
 
 
-def _annotate(prompt: str, is_conversation: bool, provider: str, timeout: int) -> list[dict]:
+def _annotate_single(prompt: str, is_conversation: bool, provider: str, timeout: int) -> list[dict]:
     if provider == "gemini":
         raw = _call_gemini(prompt, timeout=timeout)
         if raw is None:
@@ -209,6 +227,30 @@ def _annotate(prompt: str, is_conversation: bool, provider: str, timeout: int) -
         logger.warning("Failed to parse LLM output: %s", raw[:200])
         return []
 
+    return [e for e in entities if _validate_entity(e, is_conversation)]
+
+
+def _annotate(prompt: str, is_conversation: bool, provider: str, timeout: int) -> list[dict]:
+    if provider != "rotate":
+        return _annotate_single(prompt, is_conversation, provider, timeout)
+
+    idx = next(_rotate_idx) % len(_ROTATE_MODELS)
+    model = _ROTATE_MODELS[idx]
+    raw, content_filtered = _call_opencode(prompt, model, timeout=timeout)
+    if content_filtered:
+        raw = _call_gemini(prompt, timeout=timeout)
+        if raw is None:
+            return []
+        entities = _clean_llm_output(raw)
+        if entities is None:
+            return []
+        return [e for e in entities if _validate_entity(e, is_conversation)]
+    if raw is None:
+        return []
+    entities = _clean_llm_output(raw)
+    if entities is None:
+        logger.warning("Failed to parse LLM output (model=%s): %s", model, raw[:200])
+        return []
     return [e for e in entities if _validate_entity(e, is_conversation)]
 
 

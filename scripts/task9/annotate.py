@@ -54,14 +54,14 @@ def save_checkpoint(source: str, processed_ids: set[str]):
             json.dump(sorted(processed_ids), f)
 
 
-def annotate_passage_chunked(text: str, language: str, provider: str) -> list[dict]:
+def annotate_passage_chunked(text: str, language: str, provider: str, timeout: int = 120) -> list[dict]:
     chunks = chunk_passage(text)
     if len(chunks) == 1:
-        return annotate_passage(text, language, provider)
+        return annotate_passage(text, language, provider, timeout=timeout)
 
     all_entities = []
     for chunk_text, offset in chunks:
-        entities = annotate_passage(chunk_text, language, provider)
+        entities = annotate_passage(chunk_text, language, provider, timeout=timeout)
         for ent in entities:
             ent["start"] += offset
             ent["end"] += offset
@@ -82,15 +82,15 @@ def is_flagged(entities: list[dict]) -> bool:
     return n <= FLAG_MIN_ENTITIES or n > FLAG_MAX_ENTITIES
 
 
-def process_record(rec: dict, provider: str) -> dict:
+def process_record(rec: dict, provider: str, timeout: int = 120) -> dict:
     fmt = rec.get("format", "passage")
     language = rec.get("language", "en")
 
     if fmt == "passage":
-        raw_entities = annotate_passage_chunked(rec["text"], language, provider)
+        raw_entities = annotate_passage_chunked(rec["text"], language, provider, timeout=timeout)
         fixed, stats = verify_and_fix_spans(raw_entities, rec["text"])
     else:
-        raw_entities = annotate_conversation(rec["turns"], language, provider)
+        raw_entities = annotate_conversation(rec["turns"], language, provider, timeout=timeout)
         fixed, stats = verify_and_fix_spans(raw_entities, "", turns=rec["turns"])
 
     rec["entities"] = fixed
@@ -100,10 +100,10 @@ def process_record(rec: dict, provider: str) -> dict:
     return rec
 
 
-def process_record_with_retry(rec: dict, provider: str) -> dict | None:
+def process_record_with_retry(rec: dict, provider: str, timeout: int = 120) -> dict | None:
     for attempt in range(MAX_RETRIES + 1):
         try:
-            return process_record(rec, provider)
+            return process_record(rec, provider, timeout=timeout)
         except Exception as e:
             err = str(e).lower()
             if "rate" in err or "limit" in err or "429" in err or "quota" in err:
@@ -128,6 +128,7 @@ def process_source(
     resume: bool,
     concurrency: int,
     provider: str,
+    timeout: int = 120,
 ):
     in_path = FILTERED_DIR / f"{source}.jsonl"
     if not in_path.exists():
@@ -162,7 +163,7 @@ def process_source(
     start_time = time.time()
 
     def worker(rec: dict) -> dict | None:
-        return process_record_with_retry(rec, provider)
+        return process_record_with_retry(rec, provider, timeout=timeout)
 
     try:
         with ThreadPoolExecutor(max_workers=concurrency) as executor:
@@ -213,7 +214,8 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="Limit records per source")
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint")
     parser.add_argument("--concurrency", type=int, default=5, help="Worker threads")
-    parser.add_argument("--provider", default="spark", choices=["spark", "codex", "gemini"], help="LLM provider")
+    parser.add_argument("--provider", default="spark", choices=["spark", "codex", "gemini", "claude", "rotate", "codex5", "mini"], help="LLM provider")
+    parser.add_argument("--timeout", type=int, default=120, help="Per-call timeout in seconds")
     args = parser.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -225,7 +227,7 @@ def main():
             sys.exit(1)
 
     for s in sources:
-        process_source(s, args.limit, args.resume, args.concurrency, args.provider)
+        process_source(s, args.limit, args.resume, args.concurrency, args.provider, args.timeout)
 
     logger.info("All sources complete. Output: %s", OUT_DIR)
 
