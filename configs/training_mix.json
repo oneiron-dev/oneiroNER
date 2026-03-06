@@ -120,24 +120,26 @@
       "multiconer_v2_zh.jsonl": 10265,
       "open_ner_core_types.jsonl": 274511,
       "open_ner_standardized.jsonl": 366790,
-      "stockmark_ner_ja.jsonl": 4859
+      "stockmark_ner_ja.jsonl": 4859,
+      "task8_chatharuhi.jsonl": 2,
+      "task9_silver_mentalchat.jsonl": 112
     }
   },
   "dedup_stats": {
-    "total_input": 3566373,
-    "unique_texts": 3057743,
+    "total_input": 3566487,
+    "unique_texts": 3057857,
     "merged_count": 452389,
-    "output_count": 3057743,
+    "output_count": 3057857,
     "failed_singles": 0,
     "failed_merges": 0
   },
   "split_stats": {
-    "train_view_a": 2867504,
-    "train_view_b": 2041452,
-    "train_total": 4908956,
-    "val_view_a": 152804,
+    "train_view_a": 2867613,
+    "train_view_b": 2041473,
+    "train_total": 4909086,
+    "val_view_a": 152809,
     "val_view_b": 107441,
-    "val_total": 260245,
+    "val_total": 260250,
     "zero_shot_eval": 37435
   }
 }

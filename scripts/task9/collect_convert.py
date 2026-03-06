@@ -64,6 +64,20 @@ def build_entity_dicts(entities: list[dict], is_conversation: bool) -> list[dict
     return result
 
 
+def dedup_by_source_id(path: Path) -> list[dict]:
+    """Read annotated file, deduplicate by source_id keeping the record with most entities."""
+    best: dict[str, tuple[int, dict]] = {}
+    with open(path) as f:
+        for line_no, line in enumerate(f):
+            rec = json.loads(line)
+            sid = rec.get("source_id", str(line_no))
+            n_ents = len(rec.get("entities", []))
+            prev = best.get(sid)
+            if prev is None or n_ents > prev[0]:
+                best[sid] = (n_ents, rec)
+    return [rec for _, rec in best.values()]
+
+
 def process_source(source: str, sampler: NegativeSampler, rng: random.Random) -> dict:
     in_path = ANNOTATED_DIR / f"{source}.jsonl"
     if not in_path.exists():
@@ -73,9 +87,11 @@ def process_source(source: str, sampler: NegativeSampler, rng: random.Random) ->
     out_path = OUT_DIR / f"task9_silver_{source}.jsonl"
     stats = {"source": source, "records": 0, "entities": 0, "types": Counter(), "errors": 0}
 
-    with open(in_path) as fin, open(out_path, "w") as fout:
-        for line_no, line in enumerate(fin):
-            rec = json.loads(line)
+    records = dedup_by_source_id(in_path)
+    print(f"  {source}: {len(records)} unique records after dedup")
+
+    with open(out_path, "w") as fout:
+        for line_no, rec in enumerate(records):
             fmt = rec.get("format", "passage")
             is_conv = fmt == "conversation"
             raw_entities = rec.get("entities", [])

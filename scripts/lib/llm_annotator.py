@@ -1,4 +1,4 @@
-"""Shared LLM annotation harness for NER labeling via OpenCode CLI + Gemini."""
+"""Shared LLM annotation harness for NER labeling via OpenCode CLI + Gemini + OpenRouter."""
 
 import itertools
 import json
@@ -7,6 +7,8 @@ import os
 import re
 import subprocess
 import threading
+import urllib.request
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,7 @@ _rotate_idx = itertools.count()
 _rotate_lock = threading.Lock()
 
 OPENCODE_BIN = "/home/ubuntu/.opencode/bin/opencode"
+CLAUDE_BIN = "/home/ubuntu/.local/bin/claude"
 
 _DEFAULT_MODEL = "openai/gpt-5.3-codex-spark"
 _CODEX_MODEL = "openai/gpt-5.3-codex"
@@ -147,6 +150,179 @@ def _call_opencode(prompt: str, model: str, timeout: int = 120) -> tuple[str | N
         return None, False
 
 
+def _call_claude_cli(prompt: str, timeout: int = 120) -> str | None:
+    env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
+    try:
+        r = subprocess.run(
+            [
+                CLAUDE_BIN, "-p",
+                "--model", "sonnet",
+                "--output-format", "text",
+                "--tools", "",
+                "--disable-slash-commands",
+                "--strict-mcp-config",
+                "--mcp-config", '{"mcpServers":{}}',
+                "--no-session-persistence",
+            ],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+        if r.returncode != 0:
+            logger.warning("claude cli failed (rc=%d): %s", r.returncode, r.stderr[:200])
+            return None
+        out = r.stdout.strip()
+        if not out:
+            logger.debug("claude cli empty response")
+            return None
+        return out
+    except subprocess.TimeoutExpired:
+        logger.warning("claude cli timed out (%ds)", timeout)
+        return None
+    except Exception as e:
+        logger.warning("claude cli error: %s", e)
+        return None
+
+
+def _load_dotenv():
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip())
+
+_load_dotenv()
+
+
+def _get_openrouter_key() -> str:
+    key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not key:
+        raise AnnotationError("No OPENROUTER_API_KEY in env or .env")
+    return key
+
+
+_OPENROUTER_SYSTEM = (
+    "You are an expert NER annotator. Extract all matching entities from the user's text.\n\n"
+    "Entity types:\n"
+    "- PERSON: named individuals\n"
+    "- PLACE: locations\n"
+    "- ORG: organizations\n"
+    "- DATE: temporal expressions. Subtypes: Day, Week, Month, Season, Year, Decade, Relative, Range\n"
+    "- EVENT: named events\n"
+    "- RELATIONSHIP_REF: terms referring to a specific person via relationship role. Subtypes: Family, Romantic, Friend, Professional, Acquaintance\n"
+    "  - Include bare kinship: 'Mom' is Family. Include possessive: 'my sister' is Family.\n"
+    "  - Include indefinite specific: 'a friend told me' -> Friend. Skip purely generic: 'I need a friend'.\n"
+    "- EMOTION: emotional states\n"
+    "- GOAL: intentions/desires\n"
+    "- ACTIVITY: activities being done\n\n"
+    "Rules:\n"
+    "- start/end are 0-indexed character offsets within the user's text. First char = 0. end exclusive.\n"
+    "- text[start:end] must equal surface exactly."
+)
+
+_OPENROUTER_PROVIDERS = {
+    "only": ["atlas-cloud", "novita", "siliconflow"],
+    "quantizations": ["fp8"],
+}
+
+_OPENROUTER_SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "ner_entities",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "entities": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "surface": {"type": "string"},
+                            "type": {"type": "string"},
+                            "start": {"type": "integer"},
+                            "end": {"type": "integer"},
+                        },
+                        "required": ["surface", "type", "start", "end"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
+            "required": ["entities"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+_OPENROUTER_CONV_SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "ner_entities",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "entities": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "surface": {"type": "string"},
+                            "type": {"type": "string"},
+                            "start": {"type": "integer"},
+                            "end": {"type": "integer"},
+                            "turn_index": {"type": "integer"},
+                        },
+                        "required": ["surface", "type", "start", "end", "turn_index"],
+                        "additionalProperties": False,
+                    },
+                }
+            },
+            "required": ["entities"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
+def _call_openrouter(prompt: str, model: str = "deepseek/deepseek-v3.2", timeout: int = 120, is_conversation: bool = False) -> list[dict] | None:
+    key = _get_openrouter_key()
+    schema = _OPENROUTER_CONV_SCHEMA if is_conversation else _OPENROUTER_SCHEMA
+    body = json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": _OPENROUTER_SYSTEM},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 4096,
+        "response_format": schema,
+        "provider": _OPENROUTER_PROVIDERS,
+    }).encode()
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=body,
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read())
+        content = data["choices"][0]["message"]["content"]
+        parsed = json.loads(content)
+        return parsed.get("entities", [])
+    except Exception as e:
+        logger.warning("openrouter error: %s", e)
+        return None
+
+
 def _call_gemini(prompt: str, timeout: int = 120) -> str | None:
     try:
         r = subprocess.run(
@@ -194,15 +370,25 @@ def _validate_entity(ent: dict, is_conversation: bool) -> bool:
     return True
 
 
+class AnnotationError(RuntimeError):
+    pass
+
+
 def _annotate_single(prompt: str, is_conversation: bool, provider: str, timeout: int) -> list[dict]:
-    if provider == "gemini":
-        raw = _call_gemini(prompt, timeout=timeout)
+    if provider == "deepseek":
+        entities = _call_openrouter(prompt, timeout=timeout, is_conversation=is_conversation)
+        if entities is None:
+            raise AnnotationError("deepseek call failed")
+        return [e for e in entities if _validate_entity(e, is_conversation)]
+
+    if provider in ("gemini", "claude_cli"):
+        call_fn = _call_gemini if provider == "gemini" else _call_claude_cli
+        raw = call_fn(prompt, timeout=timeout)
         if raw is None:
-            return []
+            raise AnnotationError(f"{provider} call failed")
         entities = _clean_llm_output(raw)
         if entities is None:
-            logger.warning("Failed to parse Gemini output: %s", raw[:200])
-            return []
+            raise AnnotationError(f"Failed to parse {provider} output: {raw[:200]}")
         return [e for e in entities if _validate_entity(e, is_conversation)]
 
     model = _get_model(provider)
@@ -212,20 +398,18 @@ def _annotate_single(prompt: str, is_conversation: bool, provider: str, timeout:
         logger.debug("Content-filtered by OpenCode, falling back to Gemini")
         raw = _call_gemini(prompt, timeout=timeout)
         if raw is None:
-            return []
+            raise AnnotationError("Gemini fallback failed after content filter")
         entities = _clean_llm_output(raw)
         if entities is None:
-            logger.warning("Failed to parse Gemini fallback output: %s", raw[:200])
-            return []
+            raise AnnotationError(f"Failed to parse Gemini fallback output: {raw[:200]}")
         return [e for e in entities if _validate_entity(e, is_conversation)]
 
     if raw is None:
-        return []
+        raise AnnotationError(f"opencode call failed (model={model})")
 
     entities = _clean_llm_output(raw)
     if entities is None:
-        logger.warning("Failed to parse LLM output: %s", raw[:200])
-        return []
+        raise AnnotationError(f"Failed to parse LLM output: {raw[:200]}")
 
     return [e for e in entities if _validate_entity(e, is_conversation)]
 
@@ -240,23 +424,24 @@ def _annotate(prompt: str, is_conversation: bool, provider: str, timeout: int) -
     if content_filtered:
         raw = _call_gemini(prompt, timeout=timeout)
         if raw is None:
-            return []
+            raise AnnotationError("Gemini fallback failed after content filter (rotate)")
         entities = _clean_llm_output(raw)
         if entities is None:
-            return []
+            raise AnnotationError(f"Failed to parse Gemini fallback (rotate): {raw[:200]}")
         return [e for e in entities if _validate_entity(e, is_conversation)]
     if raw is None:
-        return []
+        raise AnnotationError(f"opencode call failed (rotate, model={model})")
     entities = _clean_llm_output(raw)
     if entities is None:
-        logger.warning("Failed to parse LLM output (model=%s): %s", model, raw[:200])
-        return []
+        raise AnnotationError(f"Failed to parse LLM output (rotate, model={model}): {raw[:200]}")
     return [e for e in entities if _validate_entity(e, is_conversation)]
 
 
 def annotate_passage(
     text: str, language: str, provider: str = "spark", timeout: int = 120
 ) -> list[dict]:
+    if provider == "deepseek":
+        return _annotate(text, is_conversation=False, provider=provider, timeout=timeout)
     prompt = _build_passage_prompt(text)
     return _annotate(prompt, is_conversation=False, provider=provider, timeout=timeout)
 
@@ -264,5 +449,12 @@ def annotate_passage(
 def annotate_conversation(
     turns: list[dict], language: str, provider: str = "spark", timeout: int = 120
 ) -> list[dict]:
+    if provider == "deepseek":
+        lines = []
+        for i, turn in enumerate(turns):
+            lines.append(f"[Turn {i}] {turn['speaker']}: {turn['text']}")
+        text = "\n".join(lines)
+        text += "\n\nFor conversation, add turn_index (0-indexed). Offsets relative to each turn's text."
+        return _annotate(text, is_conversation=True, provider=provider, timeout=timeout)
     prompt = _build_conversation_prompt(turns)
     return _annotate(prompt, is_conversation=True, provider=provider, timeout=timeout)
