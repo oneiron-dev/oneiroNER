@@ -35,7 +35,9 @@ SILVER_TYPE_COUNTS = {
 
 
 CANONICAL_TYPES = {
-    "PERSON", "PLACE", "ORG", "EVENT", "EMOTION", "GOAL", "ACTIVITY",
+    "PERSON", "PLACE", "ORG",
+    "EVENT", "EVENT/Life", "EVENT/General",
+    "EMOTION", "GOAL", "ACTIVITY",
     "DATE", "DATE/Day", "DATE/Week", "DATE/Month", "DATE/Season",
     "DATE/Year", "DATE/Decade", "DATE/Relative", "DATE/Range",
     "RELATIONSHIP_REF",
