@@ -12,7 +12,7 @@ class NerModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(hidden_size, num_labels)
 
-    def forward(self, input_ids, attention_mask, labels=None):
+    def forward(self, input_ids, attention_mask, labels=None, **kwargs):
         outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
         hidden = outputs.last_hidden_state
         logits = self.classifier(self.dropout(hidden))

@@ -28,15 +28,15 @@ image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
         "torch>=2.0.0",
-        "transformers>=4.40.0",
-        "accelerate>=0.28.0",
-        "huggingface_hub>=0.20.0",
+        "transformers>=4.40.0,<5.0.0",
+        "accelerate>=0.28.0,<2.0.0",
+        "huggingface_hub>=0.20.0,<2.0.0",
         "wandb",
         "numpy",
     )
-    .copy_local_dir("model", "/app/model")
-    .copy_local_dir("research", "/app/research")
-    .copy_local_dir("configs", "/app/configs")
+    .add_local_dir("model", remote_path="/app/model", copy=True)
+    .add_local_dir("research", remote_path="/app/research", copy=True)
+    .add_local_dir("configs", remote_path="/app/configs", copy=True)
 )
 
 data_vol = modal.Volume.from_name("ner-data", create_if_missing=True)
@@ -136,8 +136,13 @@ def launch_modal(experiment: dict, run_id: str) -> dict:
     with open(script_path, "w") as f:
         f.write(modal_script)
 
+    import shutil
+    modal_bin = shutil.which("modal")
+    if modal_bin is None:
+        raise RuntimeError("modal CLI not found in PATH")
+
     cmd = [
-        sys.executable, "-m", "modal", "run", script_path,
+        modal_bin, "run", script_path,
         "--experiment-json", experiment_json,
         "--run-id", run_id,
     ]

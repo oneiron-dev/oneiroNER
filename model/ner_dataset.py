@@ -286,8 +286,11 @@ def ner_collate_fn(batch: list[dict]) -> dict:
         input_ids.append(b["input_ids"] + [0] * pad_len)
         attention_mask.append(b["attention_mask"] + [0] * pad_len)
         labels.append(b["labels"] + [IGNORE_INDEX] * pad_len)
-    return {
+    result = {
         "input_ids": torch.tensor(input_ids, dtype=torch.long),
         "attention_mask": torch.tensor(attention_mask, dtype=torch.long),
         "labels": torch.tensor(labels, dtype=torch.long),
     }
+    if "offset_mapping" in batch[0]:
+        result["offset_mapping"] = [b["offset_mapping"] for b in batch]
+    return result
