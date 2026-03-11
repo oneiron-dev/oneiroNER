@@ -8,8 +8,9 @@ Named entity recognition for conversational text. Extracts 6 sync entity types f
 |-----------|-------|-------|
 | Data pipeline | Complete | 4.9M train / 260K val records, 103K silver, 46-language multilingual seed |
 | Model harness | Validated | Local smoke + Modal GPU + W&B e2e passed ([report](docs/VALIDATION-REPORT.md)) |
-| Autoresearch | Validated | launch.py orchestration tested, 5 bugs fixed during validation |
-| Training | Not started | Blocked on full data upload to Modal volume |
+| Autoresearch | Validated | launch.py orchestration tested, 7 bugs fixed during validation |
+| Dataset loading | Optimized | Lazy sidecar index + on-demand tokenization (~3 min startup vs ~20 min eager) |
+| Training | Ready | Full data on Modal volume, pending H100 throughput pilot |
 
 ## Entity Types
 
@@ -56,7 +57,7 @@ data/               Gitignored — managed locally + HF LFS
 |------|---------|
 | `config.py` | 43 BIO labels, type normalization, hyperparams, source tiers |
 | `ner_model.py` | `NerModel`: AutoModel encoder + dropout + linear head |
-| `ner_dataset.py` | JSONL loader, conversation flattening, BIO alignment, collate |
+| `ner_dataset.py` | Lazy sidecar index, on-demand tokenization, BIO alignment, collate |
 | `train.py` | `NerTrainer` with token accounting, `TokenBudgetCallback`, `AutoresearchCallback` |
 | `eval.py` | Char-span F1, token-level callback, REL_REF hard-neg analysis, `run_full_eval()` |
 | `verify_split.py` | Train/val split leakage audit |
@@ -67,7 +68,7 @@ Autonomous hyperparameter search adapted from [karpathy/autoresearch](https://gi
 
 - **Editable surface**: `research/train.py` (EXPERIMENT dict only — nothing else)
 - **Composite score**: weighted REL_REF F0.5 (0.40) + macro F1 (0.25) + hard-neg precision (0.20) + multilingual (0.10) + latency (0.05)
-- **Budget**: 3.2M tokens/experiment, 15 min wall-clock, ~$0.85/run on H100
+- **Budget**: 3.2M tokens/experiment, 60 min Modal timeout, ~$0.85/run on H100
 - **Stopping**: no improvement for 5 consecutive experiments
 
 See `research/README.md` for the full protocol.

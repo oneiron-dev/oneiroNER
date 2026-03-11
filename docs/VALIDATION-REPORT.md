@@ -90,6 +90,20 @@
 **Root cause**: HF Trainer passes all batch dict keys to `model(**inputs)`. After Bug 4 fix, offset_mapping is in the batch.
 **Fix**: Add `**kwargs` to `forward()` signature
 
+### Bug 6: Eager dataset loading causes H100 timeout
+**Severity**: Blocker (training never starts)
+**File**: `model/ner_dataset.py`
+**Symptom**: Two H100 runs timed out (18 min, 60 min) — all time spent loading + tokenizing 4.9M records before training began
+**Root cause**: `NerDataset.__init__` eagerly called `_load_jsonl()` + `_process_record()` for every record at construction time
+**Fix**: Lazy sidecar index (`_build_or_load_index`) stores byte offsets + bucket IDs. On-demand tokenization in `__getitem__`. ~2-3 min first build (JSON parse only), <1s cached via fingerprint. Applied to both train and val.
+
+### Bug 7: Bucket assignment routes silver to gold
+**Severity**: Major (training mixture broken — 75/20/5 degenerates to 100/0/0)
+**File**: `model/ner_dataset.py`
+**Symptom**: `MixtureSampler` showed `silver_en: 0, silver_ml: 0` on real data — all records in gold bucket
+**Root cause**: `_assign_bucket` checked `source.startswith("task9_")` but actual `source` field values are bare names (e.g., `"mentalchat"` not `"task9_mentalchat"`). Also, `confidence="silver"` was never matched (only gold variants checked). 664K records (13.5%) misclassified.
+**Fix**: Route on `confidence="silver"` as primary signal, then language-based `silver_en` vs `silver_ml` split. Post-fix composition: gold 4,244,998 (86.5%), silver_en 16,353 (0.3%), silver_ml 647,735 (13.2%).
+
 ---
 
 ## Metrics Observed
@@ -124,7 +138,7 @@
 
 - [x] Modal CLI (v1.3.4, pipx)
 - [x] Modal secrets: `huggingface` + `wandb`
-- [x] Modal volume: `ner-data` (mini data uploaded)
+- [x] Modal volume: `ner-data` (full train.jsonl 3.8GB + val.jsonl 207MB)
 - [x] W&B project: `oneiron-dev/ner-sft`
 - [x] W&B live sync (real-time metrics)
 - [x] AUTORESEARCH_METRICS JSON parsing
@@ -135,7 +149,9 @@
 
 ## Next Steps
 
-1. Upload full train/val data to Modal volume
-2. Run first real experiment with H100 + full token budget (3.2M)
-3. Verify smoke check passes with real data at step 100
-4. Set up `prose run research/autoresearch.prose` for autonomous loop
+1. ~~Upload full train/val data to Modal volume~~ — DONE
+2. ~~Lazy dataset loading~~ — DONE (sidecar index + on-demand tokenization)
+3. ~~Fix bucket assignment~~ — DONE (confidence-based routing)
+4. H100 throughput pilot (50-150K token budget) — verify startup time + GPU utilization
+5. First real H100 experiment with full 3.2M token budget
+6. Set up `prose run research/autoresearch.prose` for autonomous loop
