@@ -12,7 +12,7 @@ EXPERIMENT = {
     "dropout": 0.1,
     "seed": 42,
     "token_budget": 3_200_000,
-    "max_wallclock_minutes": 15,
+    "max_wallclock_minutes": 45,
     "eval_steps": 100,
     "train_path": "/data/train.jsonl",
     "val_path": "/data/val.jsonl",

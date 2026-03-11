@@ -106,6 +106,48 @@
 
 ---
 
+## Dataset Composition
+
+### Train (`train.jsonl` — 4,909,086 records)
+
+| Bucket | Records | % | Target Ratio | Sampling Behavior |
+|--------|---------|---|--------------|-------------------|
+| gold | 4,244,998 | 86.5% | 75% | Slight undersample (0.87x) |
+| silver_en | 16,353 | 0.3% | 20% | Heavy oversample (~60x) |
+| silver_ml | 647,735 | 13.2% | 5% | Undersample (0.38x) |
+
+**Top sources per bucket:**
+
+| Bucket | Top Sources |
+|--------|------------|
+| gold | finerweb (1,854K), finerweb_canonical (1,267K), french_ner (319K), french_ner_canonical (206K), multiconer_v2 (136K), chinese_ner_sft (125K), multiconer_v2_canonical (113K), chinese_ner_sft_canonical (74K), b2nerd (42K), klue_ner (25K) |
+| silver_en | open_ner_standardized (8,334), open_ner_standardized_canonical (7,889), mentalchat (107), mentalchat_canonical (21), chatharuhi (2) |
+| silver_ml | open_ner_standardized (317,661), open_ner_standardized_canonical (296,124), open_ner_core_types (16,975), open_ner_core_types_canonical (16,975) |
+
+### Val (`val.jsonl` — 260,250 records)
+
+| Bucket | Records | % |
+|--------|---------|---|
+| gold | 225,335 | 86.6% |
+| silver_en | 867 | 0.3% |
+| silver_ml | 34,048 | 13.1% |
+
+### Throughput Pilot Sampled Distribution (81 steps, 2,592 records)
+
+| Bucket | Sampled | % | Target | Match |
+|--------|---------|---|--------|-------|
+| gold | 1,945 | 75.0% | 75% | YES |
+| silver_en | 525 | 20.3% | 20% | YES |
+| silver_ml | 122 | 4.7% | 5% | YES |
+
+**Sampled sources** (top 10): finerweb 845, finerweb_canonical 586, open_ner_standardized 326, open_ner_standardized_canonical 307, french_ner 147, french_ner_canonical 104, multiconer_v2 61, multiconer_v2_canonical 57, chinese_ner_sft 50, chinese_ner_sft_canonical 37
+
+**Sampled entity types**: PERSON 1,604, PLACE 1,434, ORG 940, DATE 331, EVENT 94, EVENT/General 25, DATE/Day 18, DATE/Year 16, DATE/Month 9, DATE/Relative 2, RELATIONSHIP_REF 2, DATE/Season 1, RELATIONSHIP_REF/Professional 1
+
+**Note**: silver_en has only 16,353 records. At 20% sampling target, each silver_en record repeats ~60x per epoch. This is aggressive oversampling — worth monitoring for overfitting on silver_en data.
+
+---
+
 ## Metrics Observed
 
 | Metric | Step 5 (token-level) | Step 10 (token-level) | Step 10 (char-span) |
@@ -131,6 +173,7 @@
 | local_smoke_003 | Step 2 variant | finished |
 | local_smoke_004 | Step 2 (AUTORESEARCH_MODE) | finished (smoke abort) |
 | ar_launch_e2e_test_20260311_120554 | Step 4 | finished |
+| ar_baseline_20260311_192424 | Throughput pilot (H100) | finished |
 
 ---
 
@@ -144,6 +187,10 @@
 - [x] AUTORESEARCH_METRICS JSON parsing
 - [x] Token budget accounting (`attention_mask.sum()`)
 - [x] Smoke abort writes to `wandb.run.summary`
+- [x] Lazy sidecar index (train 66s build, val 4s, cached <1s)
+- [x] Streaming subprocess output (Popen, survives timeout)
+- [x] Bucket assignment (confidence-based routing, 75/20/5 verified)
+- [x] H100 throughput (18-22 steps/sec, 12.8GB VRAM, GPU not starved)
 
 ---
 
@@ -152,6 +199,6 @@
 1. ~~Upload full train/val data to Modal volume~~ — DONE
 2. ~~Lazy dataset loading~~ — DONE (sidecar index + on-demand tokenization)
 3. ~~Fix bucket assignment~~ — DONE (confidence-based routing)
-4. H100 throughput pilot (50-150K token budget) — verify startup time + GPU utilization
-5. First real H100 experiment with full 3.2M token budget
+4. ~~H100 throughput pilot~~ — PASSED (100K tokens, 81 steps, 18-22 steps/sec, buckets match)
+5. First real H100 experiment with full 3.2M token budget (~7 min projected)
 6. Set up `prose run research/autoresearch.prose` for autonomous loop

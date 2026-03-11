@@ -10,7 +10,7 @@ Named entity recognition for conversational text. Extracts 6 sync entity types f
 | Model harness | Validated | Local smoke + Modal GPU + W&B e2e passed ([report](docs/VALIDATION-REPORT.md)) |
 | Autoresearch | Validated | launch.py orchestration tested, 7 bugs fixed during validation |
 | Dataset loading | Optimized | Lazy sidecar index + on-demand tokenization (~3 min startup vs ~20 min eager) |
-| Training | Ready | Full data on Modal volume, pending H100 throughput pilot |
+| Training | Ready | H100 pilot passed: 18-22 steps/sec, 12.8GB VRAM, buckets match targets |
 
 ## Entity Types
 
