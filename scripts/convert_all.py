@@ -291,7 +291,7 @@ def main():
     sampler_canonical = build_canonical_sampler(type_mapping)
 
     def _is_silver(rec) -> bool:
-        return any(rec.source.startswith(prefix) for prefix in SILVER_SOURCES)
+        return rec.confidence == "silver" and getattr(rec, "format", None) == "conversation"
 
     train_non_silver = [r for r in train_records if not _is_silver(r)]
     val_non_silver = [r for r in val_records if not _is_silver(r)]
