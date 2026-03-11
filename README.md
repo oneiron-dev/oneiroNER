@@ -7,9 +7,9 @@ Named entity recognition for conversational text. Extracts 6 sync entity types f
 | Component | State | Notes |
 |-----------|-------|-------|
 | Data pipeline | Complete | 4.9M train / 260K val records, 103K silver, 46-language multilingual seed |
-| Model harness | Code complete | Needs smoke run + Modal e2e validation |
-| Autoresearch | Code complete | Needs sequential validation before autonomous loop |
-| Training | Not started | Blocked on harness validation |
+| Model harness | Validated | Local smoke + Modal GPU + W&B e2e passed ([report](docs/VALIDATION-REPORT.md)) |
+| Autoresearch | Validated | launch.py orchestration tested, 5 bugs fixed during validation |
+| Training | Not started | Blocked on full data upload to Modal volume |
 
 ## Entity Types
 
