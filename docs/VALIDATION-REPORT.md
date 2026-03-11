@@ -90,47 +90,66 @@
 **Root cause**: HF Trainer passes all batch dict keys to `model(**inputs)`. After Bug 4 fix, offset_mapping is in the batch.
 **Fix**: Add `**kwargs` to `forward()` signature
 
-### Bug 6: Eager dataset loading causes H100 timeout
+### Bug 6: Missing multilingual synthetic data in pipeline
+**Severity**: Major (silver_ml bucket empty — 5% sampling target impossible)
+**Files**: `scripts/convert_silver_synthetic.py` (new), `scripts/convert_all.py`
+**Symptom**: `MixtureSampler` showed `silver_ml: 0` — no multilingual data for 5% target
+**Root cause**: 4,200 raw synthetic conversations (46 languages) in `data/raw/silver_synthetic/` were never converted. No converter existed; `convert_all.py` did not reference them.
+**Fix**: Created `convert_silver_synthetic.py` (ConversationRecord with relaxed turn validation), added to pipeline as `SILVER_SYNTHETIC_FILES` + `converter_modules`. Post-fix: 3,949 silver_ml train + 203 silver_ml val across 46 languages.
+
+### Bug 7: Eager dataset loading causes H100 timeout
 **Severity**: Blocker (training never starts)
 **File**: `model/ner_dataset.py`
 **Symptom**: Two H100 runs timed out (18 min, 60 min) — all time spent loading + tokenizing 4.9M records before training began
 **Root cause**: `NerDataset.__init__` eagerly called `_load_jsonl()` + `_process_record()` for every record at construction time
 **Fix**: Lazy sidecar index (`_build_or_load_index`) stores byte offsets + bucket IDs. On-demand tokenization in `__getitem__`. ~2-3 min first build (JSON parse only), <1s cached via fingerprint. Applied to both train and val.
 
-### Bug 7: Bucket assignment routes silver to gold
+### Bug 8: Bucket assignment routes silver to gold
 **Severity**: Major (training mixture broken — 75/20/5 degenerates to 100/0/0)
 **File**: `model/ner_dataset.py`
 **Symptom**: `MixtureSampler` showed `silver_en: 0, silver_ml: 0` on real data — all records in gold bucket
-**Root cause**: `_assign_bucket` checked `source.startswith("task9_")` but actual `source` field values are bare names (e.g., `"mentalchat"` not `"task9_mentalchat"`). Also, `confidence="silver"` was never matched (only gold variants checked). 664K records (13.5%) misclassified.
-**Fix**: Route on `confidence="silver"` as primary signal, then language-based `silver_en` vs `silver_ml` split. Post-fix composition: gold 4,244,998 (86.5%), silver_en 16,353 (0.3%), silver_ml 647,735 (13.2%).
+**Root cause**: `_assign_bucket` checked `source.startswith("task9_")` but actual `source` field values are bare names (e.g., `"mentalchat"` not `"task9_mentalchat"`). Also, `confidence="silver"` was never matched (only gold variants checked).
+**Fix**: Route on `confidence="silver"` as primary signal, then `format="conversation"` gate (formal NER silver → gold), then language-based `silver_en` vs `silver_ml` split.
+
+### Bug 9: `_is_silver` in convert_all.py uses wrong field matching
+**Severity**: Moderate (View B generation skips wrong records)
+**File**: `scripts/convert_all.py`
+**Symptom**: `_is_silver` checked `rec.source.startswith("task8_")` / `"task9_silver_"` but `source` field has bare names like `"personachat"`, not prefixed filenames
+**Fix**: Changed to `rec.confidence == "silver" and getattr(rec, "format", None) == "conversation"`
+
+### Bug 10: Dedup drops >4 turn ConversationRecords
+**Severity**: Moderate (432 synthetic multilingual records silently dropped)
+**File**: `scripts/lib/dedup.py`
+**Symptom**: 432 "Failed to recompute single record" warnings from `silver_synthetic_ml.jsonl`
+**Root cause**: `_recompute_negatives` calls `record_from_jsonl` → `ConversationRecord.validate()` which enforces `2 <= len(turns) <= 4`. Synthetic conversations with 5-6 turns fail validation and are dropped.
+**Fix**: Fall back to writing updated JSON directly (with recomputed negatives) when schema validation fails.
 
 ---
 
-## Dataset Composition
+## Dataset Composition (Post-Rebuild 2026-03-11)
 
-### Train (`train.jsonl` — 4,909,086 records)
+### Train (`train.jsonl` — 5,020,223 records)
 
 | Bucket | Records | % | Target Ratio | Sampling Behavior |
 |--------|---------|---|--------------|-------------------|
-| gold | 4,244,998 | 86.5% | 75% | Slight undersample (0.87x) |
-| silver_en | 16,353 | 0.3% | 20% | Heavy oversample (~60x) |
-| silver_ml | 647,735 | 13.2% | 5% | Undersample (0.38x) |
+| gold | 4,245,044 | 84.6% | 75% | Slight undersample |
+| gold (non-convo silver) | 690,144 | 13.7% | — | Formal NER silver routed to gold |
+| silver_en | 81,086 | 1.6% | 20% | ~12x oversample |
+| silver_ml | 3,949 | 0.1% | 5% | ~63x oversample |
 
-**Top sources per bucket:**
+**Bucket routing**: `confidence="silver"` + `format="conversation"` → silver buckets (en/ml by language). Non-conversation silver (open_ner formal NER) → gold.
 
-| Bucket | Top Sources |
-|--------|------------|
-| gold | finerweb (1,854K), finerweb_canonical (1,267K), french_ner (319K), french_ner_canonical (206K), multiconer_v2 (136K), chinese_ner_sft (125K), multiconer_v2_canonical (113K), chinese_ner_sft_canonical (74K), b2nerd (42K), klue_ner (25K) |
-| silver_en | open_ner_standardized (8,334), open_ner_standardized_canonical (7,889), mentalchat (107), mentalchat_canonical (21), chatharuhi (2) |
-| silver_ml | open_ner_standardized (317,661), open_ner_standardized_canonical (296,124), open_ner_core_types (16,975), open_ner_core_types_canonical (16,975) |
+**silver_en sources**: pippa 34.9K, prosocial_dialog 29.3K, personachat 9.5K, synthetic_persona_chat 6.5K, roleplay_hieu 914, chatharuhi 2
+**silver_ml**: 3,949 records across 46 languages (multilingual synthetic conversations)
 
-### Val (`val.jsonl` — 260,250 records)
+### Val (`val.jsonl` — 266,081 records)
 
 | Bucket | Records | % |
 |--------|---------|---|
-| gold | 225,335 | 86.6% |
-| silver_en | 867 | 0.3% |
-| silver_ml | 34,048 | 13.1% |
+| gold | 225,340 | 84.7% |
+| gold (non-convo silver) | 36,273 | 13.6% |
+| silver_en | 4,265 | 1.6% |
+| silver_ml | 203 | 0.1% |
 
 ### Throughput Pilot Sampled Distribution (81 steps, 2,592 records)
 
@@ -144,7 +163,7 @@
 
 **Sampled entity types**: PERSON 1,604, PLACE 1,434, ORG 940, DATE 331, EVENT 94, EVENT/General 25, DATE/Day 18, DATE/Year 16, DATE/Month 9, DATE/Relative 2, RELATIONSHIP_REF 2, DATE/Season 1, RELATIONSHIP_REF/Professional 1
 
-**Note**: silver_en has only 16,353 records. At 20% sampling target, each silver_en record repeats ~60x per epoch. This is aggressive oversampling — worth monitoring for overfitting on silver_en data.
+**Note**: silver_en has 81K records (1.6% of corpus). At 20% sampling target, each silver_en record repeats ~12x per epoch. silver_ml has only 3,949 records (0.1% of corpus) — at 5% target, ~63x oversampling. Monitor for overfitting on both silver buckets.
 
 ---
 
@@ -181,7 +200,7 @@
 
 - [x] Modal CLI (v1.3.4, pipx)
 - [x] Modal secrets: `huggingface` + `wandb`
-- [x] Modal volume: `ner-data` (full train.jsonl 3.8GB + val.jsonl 207MB)
+- [x] Modal volume: `ner-data` (full train.jsonl 4.0GB + val.jsonl 218MB)
 - [x] W&B project: `oneiron-dev/ner-sft`
 - [x] W&B live sync (real-time metrics)
 - [x] AUTORESEARCH_METRICS JSON parsing

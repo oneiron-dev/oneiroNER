@@ -47,11 +47,14 @@ OPEN_NER_FILES = [
     "open_ner_standardized.jsonl",
     "open_ner_core_types.jsonl",
 ]
+SILVER_SYNTHETIC_FILES = [
+    "silver_synthetic_ml.jsonl",
+]
 
 
 def collect_input_files() -> list[Path]:
     files = []
-    for name in CONVERTER_OUTPUTS + OPEN_NER_FILES:
+    for name in CONVERTER_OUTPUTS + OPEN_NER_FILES + SILVER_SYNTHETIC_FILES:
         p = PROCESSED_DIR / name
         if p.exists():
             files.append(p)
@@ -209,6 +212,7 @@ def run_converters():
         "convert_open_ner",
         "convert_multiconer",
         "convert_klue",
+        "convert_silver_synthetic",
     ]
 
     all_stats = {}

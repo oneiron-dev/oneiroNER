@@ -6,7 +6,7 @@ Named entity recognition for conversational text. Extracts 6 sync entity types f
 
 | Component | State | Notes |
 |-----------|-------|-------|
-| Data pipeline | Complete | 4.9M train / 260K val records, 103K silver, 46-language multilingual seed |
+| Data pipeline | Complete | 5.0M train / 266K val records, 85K silver-en, 4.2K silver-ml (46 langs) |
 | Model harness | Validated | Local smoke + Modal GPU + W&B e2e passed ([report](docs/VALIDATION-REPORT.md)) |
 | Autoresearch | Validated | launch.py orchestration tested, 7 bugs fixed during validation |
 | Dataset loading | Optimized | Lazy sidecar index + on-demand tokenization (~3 min startup vs ~20 min eager) |
@@ -92,7 +92,7 @@ prose run research/autoresearch.prose
 
 | Tier | Sources | Weight |
 |------|---------|--------|
-| Gold | Existing labeled data (~4.9M train / ~260K val) | 1.0 |
+| Gold | Existing labeled data (~4.9M train / ~262K val) | 1.0 |
 | T1 | mentalchat, therapy, personachat, prosocial | 0.9 |
 | T2 | reddit_confessions | 0.7 |
 | T3 | pippa, opencharacter, roleplay_hieu, synthetic_persona_chat | 0.5 |

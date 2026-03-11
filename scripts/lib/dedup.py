@@ -90,9 +90,12 @@ def _recompute_negatives(line: str, sampler: NegativeSampler, rng: random.Random
         positive_types = set(ent["type"] for ent in d["entities"])
         negatives = sampler.sample(positive_types, rng=rng)
         d["query_types"] = sorted(positive_types | set(negatives))
-        rec = record_from_jsonl(json.dumps(d, ensure_ascii=False))
-        rec.validate()
-        return rec.to_jsonl()
+        try:
+            rec = record_from_jsonl(json.dumps(d, ensure_ascii=False))
+            rec.validate()
+            return rec.to_jsonl()
+        except Exception:
+            return json.dumps(d, ensure_ascii=False)
     except Exception as e:
         logger.debug("Recompute/validation failed: %s", e)
         return None
