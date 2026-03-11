@@ -33,16 +33,7 @@ class MixtureSampler(Sampler):
     """Samples from gold/silver_en/silver_ml buckets at target ratios."""
 
     def __init__(self, dataset, gold_ratio=GOLD_RATIO, silver_en_ratio=SILVER_EN_RATIO, silver_ml_ratio=SILVER_ML_RATIO, seed=42):
-        if hasattr(dataset, 'bucket_indices') and dataset.bucket_indices is not None:
-            self.buckets = dict(dataset.bucket_indices)
-        else:
-            self.buckets = {"gold": [], "silver_en": [], "silver_ml": []}
-            for i, rec in enumerate(dataset.records):
-                bucket = rec.get("bucket", "gold")
-                if bucket in self.buckets:
-                    self.buckets[bucket].append(i)
-                else:
-                    self.buckets["gold"].append(i)
+        self.buckets = dict(dataset.bucket_indices)
 
         self.ratios = {"gold": gold_ratio, "silver_en": silver_en_ratio, "silver_ml": silver_ml_ratio}
         self.seed = seed

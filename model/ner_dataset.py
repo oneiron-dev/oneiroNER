@@ -146,40 +146,7 @@ class NerDataset(Dataset):
         self.type_mapping = type_mapping
         self.max_seq_len = max_seq_len
         self.is_train = is_train
-        if is_train:
-            self._init_lazy(data_path)
-        else:
-            self._init_eager(data_path)
-
-    def _init_eager(self, data_path):
-        self._lazy = False
-        self.bucket_indices = None
-        raw_records = _load_jsonl(data_path)
-        self.records = []
-        entity_count = 0
-        truncated_entities = 0
-        bucket_counts: Counter = Counter()
-        type_counts: Counter = Counter()
-
-        for rec in raw_records:
-            processed = self._process_record(rec)
-            if processed is None:
-                continue
-            self.records.append(processed)
-            entity_count += processed["_entity_count"]
-            truncated_entities += processed["_truncated"]
-            bucket_counts[processed["bucket"]] += 1
-            for t in processed["_type_list"]:
-                type_counts[t] += 1
-
-        total = len(self.records)
-        trunc_pct = (truncated_entities / max(entity_count, 1)) * 100
-        logger.info(
-            f"Loaded {total} records, {entity_count} entities "
-            f"({trunc_pct:.1f}% truncated) from {data_path}"
-        )
-        logger.info(f"Buckets: {dict(bucket_counts)}")
-        logger.info(f"Type dist: {dict(type_counts.most_common(25))}")
+        self._init_lazy(data_path)
 
     def _init_lazy(self, data_path):
         self._lazy = True
@@ -192,8 +159,9 @@ class NerDataset(Dataset):
         self._num_rows = index["num_rows"]
         self.bucket_indices = index["bucket_indices"]
 
-        logger.info("Lazy train dataset: %d rows, buckets=%s",
-                     self._num_rows, index["bucket_counts"])
+        split = "train" if self.is_train else "val"
+        logger.info("Lazy %s dataset: %d rows, buckets=%s",
+                     split, self._num_rows, index["bucket_counts"])
 
     def __len__(self):
         if self._lazy:
@@ -201,10 +169,6 @@ class NerDataset(Dataset):
         return len(self.records)
 
     def __getitem__(self, idx):
-        if not self._lazy:
-            rec = self.records[idx]
-            return {k: v for k, v in rec.items() if not k.startswith("_")}
-
         self._ensure_open()
         self._fh.seek(int(self._offsets[idx]))
         line = self._fh.readline()
@@ -215,18 +179,24 @@ class NerDataset(Dataset):
                 f"Record at index {idx} returned None — sidecar index may be stale. "
                 f"Delete the _index/ directory and retry."
             )
-        return {
+        result = {
             "input_ids": processed["input_ids"],
             "attention_mask": processed["attention_mask"],
             "labels": processed["labels"],
-            "meta": {
+        }
+        if self.is_train:
+            result["meta"] = {
                 "entity_count": processed["_entity_count"],
                 "truncated": processed["_truncated"],
                 "type_list": processed["_type_list"],
                 "bucket": processed["bucket"],
                 "source": processed["source"],
-            },
-        }
+            }
+        else:
+            result["text"] = processed["text"]
+            result["entities_gold"] = processed["entities_gold"]
+            result["offset_mapping"] = processed["offset_mapping"]
+        return result
 
     def _ensure_open(self):
         if self._fh is None or self._fh.closed:
@@ -354,20 +324,6 @@ class NerDataset(Dataset):
             result["entities_gold"] = filtered
             result["offset_mapping"] = offset_mapping
         return result
-
-
-def _load_jsonl(path: str) -> list[dict]:
-    records = []
-    with open(path) as f:
-        for line_num, line in enumerate(f, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                records.append(json.loads(line))
-            except json.JSONDecodeError:
-                logger.warning(f"Bad JSON at line {line_num} in {path}")
-    return records
 
 
 def _flatten_conversation(rec: dict) -> tuple[str, list[dict]]:
