@@ -2,9 +2,14 @@
 
 import json
 import logging
+import os
 import random
+import shutil
+import tempfile
 from collections import Counter, defaultdict
+from pathlib import Path
 
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -20,6 +25,112 @@ from model.config import (
 logger = logging.getLogger(__name__)
 
 _SYNC_SET = set(SYNC_TYPES)
+_BUCKET_MAP = {"gold": 0, "silver_en": 1, "silver_ml": 2}
+_BUCKET_NAMES = {v: k for k, v in _BUCKET_MAP.items()}
+
+
+def _build_or_load_index(data_path: str) -> dict:
+    path = Path(data_path)
+    stat = path.stat()
+    fingerprint = f"{stat.st_size}:{stat.st_mtime_ns}"
+
+    index_dir = path.parent / f"{path.stem}_index"
+    meta_path = index_dir / "meta.json"
+
+    if meta_path.exists():
+        with open(meta_path) as f:
+            meta = json.load(f)
+        if meta.get("fingerprint") == fingerprint:
+            logger.info("Loaded sidecar index from %s (%d rows)", index_dir, meta["num_rows"])
+            return {
+                "offsets": np.load(index_dir / "offsets.npy", mmap_mode="r"),
+                "bucket_ids": np.load(index_dir / "bucket_ids.npy", mmap_mode="r"),
+                "bucket_indices": {
+                    name: np.load(index_dir / f"{name}_idx.npy", mmap_mode="r")
+                    for name in _BUCKET_MAP
+                    if (index_dir / f"{name}_idx.npy").exists()
+                },
+                "num_rows": meta["num_rows"],
+                "bucket_counts": meta["bucket_counts"],
+                "source_counts": meta["source_counts"],
+            }
+
+    logger.info("Building sidecar index for %s ...", data_path)
+    offsets = []
+    bucket_ids = []
+    sources = []
+
+    with open(path, "rb") as f:
+        while True:
+            offset = f.tell()
+            line = f.readline()
+            if not line:
+                break
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                logger.warning("Bad JSON at offset %d in %s", offset, data_path)
+                continue
+
+            if rec.get("format") == "conversation":
+                if not rec.get("turns"):
+                    continue
+            else:
+                if not rec.get("text", ""):
+                    continue
+
+            bucket = _assign_bucket(rec)
+            bucket_id = _BUCKET_MAP.get(bucket, 0)
+            offsets.append(offset)
+            bucket_ids.append(bucket_id)
+            sources.append(rec.get("source", ""))
+
+    offsets_arr = np.array(offsets, dtype=np.uint64)
+    bucket_ids_arr = np.array(bucket_ids, dtype=np.uint8)
+
+    bucket_indices = {}
+    bucket_counts = {}
+    for name, bid in _BUCKET_MAP.items():
+        idx = np.where(bucket_ids_arr == bid)[0].astype(np.int32)
+        bucket_indices[name] = idx
+        bucket_counts[name] = int(len(idx))
+
+    source_counts = dict(Counter(sources))
+    num_rows = len(offsets)
+
+    tmp_dir = tempfile.mkdtemp(dir=path.parent)
+    try:
+        np.save(os.path.join(tmp_dir, "offsets.npy"), offsets_arr)
+        np.save(os.path.join(tmp_dir, "bucket_ids.npy"), bucket_ids_arr)
+        for name, idx_arr in bucket_indices.items():
+            np.save(os.path.join(tmp_dir, f"{name}_idx.npy"), idx_arr)
+        with open(os.path.join(tmp_dir, "meta.json"), "w") as f:
+            json.dump({
+                "fingerprint": fingerprint,
+                "num_rows": num_rows,
+                "bucket_counts": bucket_counts,
+                "source_counts": source_counts,
+            }, f)
+        if index_dir.exists():
+            shutil.rmtree(index_dir)
+        os.rename(tmp_dir, index_dir)
+    except Exception:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise
+
+    logger.info("Built sidecar index: %d rows, buckets=%s", num_rows, bucket_counts)
+
+    return {
+        "offsets": offsets_arr,
+        "bucket_ids": bucket_ids_arr,
+        "bucket_indices": bucket_indices,
+        "num_rows": num_rows,
+        "bucket_counts": bucket_counts,
+        "source_counts": source_counts,
+    }
 
 
 class NerDataset(Dataset):
@@ -35,7 +146,14 @@ class NerDataset(Dataset):
         self.type_mapping = type_mapping
         self.max_seq_len = max_seq_len
         self.is_train = is_train
+        if is_train:
+            self._init_lazy(data_path)
+        else:
+            self._init_eager(data_path)
 
+    def _init_eager(self, data_path):
+        self._lazy = False
+        self.bucket_indices = None
         raw_records = _load_jsonl(data_path)
         self.records = []
         entity_count = 0
@@ -63,16 +181,61 @@ class NerDataset(Dataset):
         logger.info(f"Buckets: {dict(bucket_counts)}")
         logger.info(f"Type dist: {dict(type_counts.most_common(25))}")
 
+    def _init_lazy(self, data_path):
+        self._lazy = True
+        self.records = None
+        self._data_path = data_path
+        self._fh = None
+
+        index = _build_or_load_index(data_path)
+        self._offsets = index["offsets"]
+        self._num_rows = index["num_rows"]
+        self.bucket_indices = index["bucket_indices"]
+
+        logger.info("Lazy train dataset: %d rows, buckets=%s",
+                     self._num_rows, index["bucket_counts"])
+
     def __len__(self):
+        if self._lazy:
+            return self._num_rows
         return len(self.records)
 
     def __getitem__(self, idx):
-        rec = self.records[idx]
+        if not self._lazy:
+            rec = self.records[idx]
+            return {k: v for k, v in rec.items() if not k.startswith("_")}
+
+        self._ensure_open()
+        self._fh.seek(int(self._offsets[idx]))
+        line = self._fh.readline()
+        raw = json.loads(line)
+        processed = self._process_record(raw)
+        if processed is None:
+            raise RuntimeError(
+                f"Record at index {idx} returned None — sidecar index may be stale. "
+                f"Delete the _index/ directory and retry."
+            )
         return {
-            k: v
-            for k, v in rec.items()
-            if not k.startswith("_")
+            "input_ids": processed["input_ids"],
+            "attention_mask": processed["attention_mask"],
+            "labels": processed["labels"],
+            "meta": {
+                "entity_count": processed["_entity_count"],
+                "truncated": processed["_truncated"],
+                "type_list": processed["_type_list"],
+                "bucket": processed["bucket"],
+                "source": processed["source"],
+            },
         }
+
+    def _ensure_open(self):
+        if self._fh is None or self._fh.closed:
+            self._fh = open(self._data_path, "rb")
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_fh"] = None
+        return state
 
     def _process_record(self, rec: dict) -> dict | None:
         if rec.get("format") == "conversation":
@@ -293,4 +456,6 @@ def ner_collate_fn(batch: list[dict]) -> dict:
     }
     if "offset_mapping" in batch[0]:
         result["offset_mapping"] = [b["offset_mapping"] for b in batch]
+    if "meta" in batch[0]:
+        result["meta"] = [b["meta"] for b in batch]
     return result

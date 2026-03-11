@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 GPU_TYPE = os.getenv("AUTORESEARCH_GPU", "H100")
 GPU_COSTS = {"H100": 3.95, "B200": 6.25, "A100": 3.30, "A10G": 1.10}
 
-MODAL_TIMEOUT = 1080  # 18 min — 3 min buffer over internal 15 min cap
+MODAL_TIMEOUT = 3600  # 60 min — accounts for data loading time on full dataset
 
 MODAL_APP_CODE = '''
 import json
@@ -63,7 +63,7 @@ def train_experiment(experiment_json: str, run_id: str):
     experiment = json.loads(experiment_json)
 
     cmd = [
-        sys.executable, "-m", "model.train",
+        sys.executable, "-u", "-m", "model.train",
         "--lr", str(experiment["learning_rate"]),
         "--batch-size", str(experiment["per_device_train_batch_size"]),
         "--warmup-ratio", str(experiment.get("warmup_ratio", 0.05)),
@@ -86,21 +86,19 @@ def train_experiment(experiment_json: str, run_id: str):
     val_path = experiment.get("val_path", "/data/mini_eval.jsonl")
     cmd.extend(["--train-path", train_path, "--val-path", val_path])
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return {{
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-        "returncode": result.returncode,
-    }}
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    lines = []
+    for line in proc.stdout:
+        print(line, end="", flush=True)
+        lines.append(line)
+    proc.wait()
+    output = "".join(lines)
+    return {{"stdout": output, "stderr": "", "returncode": proc.returncode}}
 
 
 @app.local_entrypoint()
 def main(experiment_json: str, run_id: str):
     result = train_experiment.remote(experiment_json, run_id)
-    if result["stdout"]:
-        print(result["stdout"])
-    if result["stderr"]:
-        print(result["stderr"], file=sys.stderr)
     if result["returncode"] != 0:
         sys.exit(result["returncode"])
 '''

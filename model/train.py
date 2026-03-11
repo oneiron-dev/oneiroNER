@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import os
+from collections import Counter
 
 import torch
 from torch.utils.data import Sampler
@@ -32,13 +33,16 @@ class MixtureSampler(Sampler):
     """Samples from gold/silver_en/silver_ml buckets at target ratios."""
 
     def __init__(self, dataset, gold_ratio=GOLD_RATIO, silver_en_ratio=SILVER_EN_RATIO, silver_ml_ratio=SILVER_ML_RATIO, seed=42):
-        self.buckets = {"gold": [], "silver_en": [], "silver_ml": []}
-        for i, rec in enumerate(dataset.records):
-            bucket = rec.get("bucket", "gold")
-            if bucket in self.buckets:
-                self.buckets[bucket].append(i)
-            else:
-                self.buckets["gold"].append(i)
+        if hasattr(dataset, 'bucket_indices') and dataset.bucket_indices is not None:
+            self.buckets = dict(dataset.bucket_indices)
+        else:
+            self.buckets = {"gold": [], "silver_en": [], "silver_ml": []}
+            for i, rec in enumerate(dataset.records):
+                bucket = rec.get("bucket", "gold")
+                if bucket in self.buckets:
+                    self.buckets[bucket].append(i)
+                else:
+                    self.buckets["gold"].append(i)
 
         self.ratios = {"gold": gold_ratio, "silver_en": silver_en_ratio, "silver_ml": silver_ml_ratio}
         self.seed = seed
@@ -64,7 +68,7 @@ class MixtureSampler(Sampler):
         indices = []
         for bucket_name, ratio in self.ratios.items():
             bucket_indices = self.buckets[bucket_name]
-            if not bucket_indices:
+            if len(bucket_indices) == 0:
                 continue
             n_samples = int(self._len * ratio)
             perm = torch.randperm(len(bucket_indices), generator=g)
@@ -141,9 +145,23 @@ class NerTrainer(Trainer):
         super().__init__(*args, **kwargs)
         self.mixture_sampler = mixture_sampler
         self.tokens_seen = 0
+        self._sampled_entities = 0
+        self._sampled_truncated = 0
+        self._sampled_types = Counter()
+        self._sampled_buckets = Counter()
+        self._sampled_sources = Counter()
 
     def training_step(self, model, inputs, num_items_in_batch=None):
         self.tokens_seen += inputs["attention_mask"].sum().item()
+        meta_batch = inputs.pop("meta", None)
+        if meta_batch:
+            for m in meta_batch:
+                self._sampled_entities += m["entity_count"]
+                self._sampled_truncated += m["truncated"]
+                self._sampled_buckets[m["bucket"]] += 1
+                self._sampled_sources[m["source"]] += 1
+                for t in m["type_list"]:
+                    self._sampled_types[t] += 1
         return super().training_step(model, inputs, num_items_in_batch)
 
     def get_train_dataloader(self):
@@ -267,6 +285,14 @@ def main():
 
     trainer.train()
     trainer.save_model()
+
+    if trainer._sampled_entities > 0:
+        trunc_pct = (trainer._sampled_truncated / max(trainer._sampled_entities, 1)) * 100
+        logger.info("=== Sampled Training Stats ===")
+        logger.info("Entities seen: %d (%.1f%% truncated)", trainer._sampled_entities, trunc_pct)
+        logger.info("Bucket dist: %s", dict(trainer._sampled_buckets))
+        logger.info("Source dist (top 10): %s", dict(trainer._sampled_sources.most_common(10)))
+        logger.info("Type dist: %s", dict(trainer._sampled_types.most_common(25)))
 
     if is_autoresearch:
         from model.eval import run_full_eval
