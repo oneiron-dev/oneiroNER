@@ -408,10 +408,10 @@ def _assign_bucket(rec: dict) -> str:
     confidence = rec.get("confidence", "")
     if confidence in ("human-gold", "synthetic-gold", "gold"):
         return "gold"
-    source = rec.get("source", "")
     lang = rec.get("language", "en")
-    if source.startswith(("task9_", "task8_")):
+    if confidence == "silver":
         return "silver_en" if lang == "en" else "silver_ml"
+    source = rec.get("source", "")
     if source.startswith(("multilingual_", "ml_synthetic_", "silver_ml_")):
         return "silver_ml"
     return "gold"
