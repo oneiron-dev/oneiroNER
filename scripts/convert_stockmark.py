@@ -35,6 +35,7 @@ def convert(output_dir: str | None = None) -> dict:
 
     stats = {"total": 0, "written": 0, "skipped": 0, "entities": 0, "entities_skipped": 0}
 
+    curid_counts: dict[str, int] = {}
     with open(outfile, "w") as fout:
         for entry in data:
             stats["total"] += 1
@@ -66,9 +67,13 @@ def convert(output_dir: str | None = None) -> dict:
             neg_types = neg_sampler.sample(pos_types, rng=rng)
             query_types = sorted(pos_types) + neg_types
 
+            curid = str(entry["curid"])
+            curid_counts[curid] = curid_counts.get(curid, 0) + 1
+            sid = f"stockmark_{curid}" if curid_counts[curid] == 1 else f"stockmark_{curid}_{curid_counts[curid]}"
+
             rec = NerRecord(
                 source=SOURCE,
-                source_id=f"stockmark_{entry['curid']}",
+                source_id=sid,
                 language=LANGUAGE,
                 split="train",
                 confidence=CONFIDENCE,

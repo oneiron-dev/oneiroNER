@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Task 8: Silver-label roleplay datasets (JP-RP + ChatHaruhi) via LLM NER annotation."""
+"""Task 8: Silver-label roleplay datasets (JP-RP + ChatHaruhi) via LLM NER annotation.
+
+LEGACY: This was the initial annotation pipeline using provider="spark".
+The current re-annotation pipeline uses scripts/task8/annotate_batch.py with
+GPT-5.4 (primary) and DeepSeek V3.2 (for Sonnet JP-RP re-annotation).
+See scripts/task8/README.md for the current pipeline.
+"""
 
 import argparse
 import json

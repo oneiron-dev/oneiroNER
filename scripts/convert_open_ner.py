@@ -46,23 +46,27 @@ def map_lang(lang3: str) -> str:
     return LANG_MAP.get(lang3, lang3)
 
 
-def process_parquet(path: Path, dataset: str, lang3: str, source_prefix: str, source_name: str) -> list[NerRecord]:
+def process_parquet(path: Path, dataset: str, lang3: str, source_prefix: str, source_name: str,
+                    global_idx_start: int = 0) -> tuple[list[NerRecord], int]:
     lang2 = map_lang(lang3)
     records = []
+    pq_stem = path.stem
 
     try:
         ds = load_dataset("parquet", data_files=str(path), split="train")
     except Exception as e:
         logger.warning("Failed to load %s: %s", path, e)
-        return records
+        return records, global_idx_start
 
     label_names = ds.features["ner_tags"].feature.names
+    global_idx = global_idx_start
 
-    for idx, row in enumerate(ds):
+    for row in ds:
         tokens = row["tokens"]
         tags = row["ner_tags"]
 
         if not tokens:
+            global_idx += 1
             continue
 
         token_spans = bio_tags_to_spans(tokens, tags, tag_map=label_names)
@@ -83,6 +87,7 @@ def process_parquet(path: Path, dataset: str, lang3: str, source_prefix: str, so
                 ).to_dict())
 
         if not entities:
+            global_idx += 1
             continue
 
         pos_types = {e["type"] for e in entities}
@@ -91,7 +96,7 @@ def process_parquet(path: Path, dataset: str, lang3: str, source_prefix: str, so
 
         rec = NerRecord(
             source=source_name,
-            source_id=f"{source_prefix}_{dataset}_{lang3}_{idx}",
+            source_id=f"{source_prefix}_{dataset}_{lang3}_{pq_stem}_{global_idx}",
             language=lang2,
             split="train",
             confidence=CONFIDENCE,
@@ -102,8 +107,9 @@ def process_parquet(path: Path, dataset: str, lang3: str, source_prefix: str, so
         )
         rec.validate()
         records.append(rec)
+        global_idx += 1
 
-    return records
+    return records, global_idx
 
 
 def process_variant(data_dir: Path, source_name: str, source_prefix: str,
@@ -130,9 +136,11 @@ def process_variant(data_dir: Path, source_name: str, source_prefix: str,
             if not parquets:
                 continue
 
+            global_idx = 0
             for pq in parquets:
                 stats["total_parquets"] += 1
-                recs = process_parquet(pq, dataset, lang3, source_prefix, source_name)
+                recs, global_idx = process_parquet(pq, dataset, lang3, source_prefix, source_name,
+                                                   global_idx_start=global_idx)
                 if recs:
                     lang_records.setdefault(lang2, []).extend(recs)
                     stats["total_rows"] += len(recs)
