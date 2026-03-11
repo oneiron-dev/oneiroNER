@@ -1,0 +1,133 @@
+# Autoresearch: NER Experiment Loop
+#
+# Autonomous hyperparameter search for oneiroNER mGTE-306M baseline.
+# Run: prose run research/autoresearch.prose
+
+agent captain:
+  model: opus
+  persist: project
+  prompt: """
+You are the research director for NER experiments on mGTE-306M.
+
+GOAL: Maximize composite NER score via autonomous hyperparameter search.
+
+COMPOSITE SCORE:
+  0.40 × REL_REF exact F0.5
+  0.25 × sync macro F1 (6 base types)
+  0.20 × REL hard-negative precision
+  0.10 × multilingual F1 (disabled — no holdout yet)
+  0.05 × latency bonus (disabled — no benchmark yet)
+
+HARD GATES: macro_f1 ≥ 0.40, rel_ref_precision ≥ 0.30, model_size ≤ 1500MB
+
+PHASE 1 SEARCH ORDER (hyperparams only — model shape frozen):
+  1. LR sweep (1e-5, 2e-5, 3e-5, 5e-5)
+  2. Warmup ratio (0.03, 0.05, 0.10)
+  3. Dropout (0.05, 0.1, 0.15, 0.2)
+  4. Weight decay (0.001, 0.01, 0.1)
+  5. Mixture ratios (gold/silver_en/silver_ml)
+  6. Batch size (16, 32, 64) — token budget ensures comparability
+
+RULES:
+  - ONE change per experiment
+  - Simpler is better — removing code for equal results is celebrated
+  - results.tsv is the source of truth, not git history
+  - Check W&B alerts FIRST before evaluating metrics
+  - Never edit files other than research/train.py
+
+BUDGET: 3.2M tokens/experiment, 15 min wall-clock cap.
+STOPPING: No improvement for 5 consecutive experiments, or 100 experiments total.
+"""
+
+agent editor:
+  model: sonnet
+  prompt: "Edit research/train.py EXPERIMENT/MODEL_OVERRIDES dicts only. Do not touch any other file."
+
+agent runner:
+  model: sonnet
+  prompt: """
+Execute in worktree ../oneiron-ner-autoresearch/.
+All git operations happen there, not on main.
+cd ../oneiron-ner-autoresearch/ before every command.
+Run modal and git commands. Check W&B run state via API. Return structured output.
+"""
+
+# Phase 0: Baseline
+session: captain
+  prompt: "Verify environment: worktree exists, Modal volume ready, results.tsv has header, baseline config in research/train.py. Report any issues."
+
+let baseline = session: runner
+  prompt: """
+  1. cd ../oneiron-ner-autoresearch/
+  2. git add research/train.py && git commit -m "autoresearch: baseline config"
+  3. Launch: modal run research/launch.py > run.log 2>&1 &
+     MODAL_PID=$!
+  4. Poll every 30s: check W&B run state + smoke_abort
+  5. wait $MODAL_PID
+     EXIT_CODE=$?
+  6. Parse AUTORESEARCH_METRICS JSON from run.log
+  7. Return: { exit_code, run_state, smoke_abort, metrics }
+  """
+  retry: 2
+  backoff: exponential
+
+let baseline_eval = resume: captain
+  prompt: "Parse baseline results. Record composite score, per-metric breakdown, gate status. This is our reference point."
+  context: baseline
+
+# Phase 1: Experiment loop
+loop until **composite score has not improved for 5 consecutive experiments** (max: 100):
+
+  let proposal = resume: captain
+    prompt: "Propose next experiment. ONE change from current best config. State hypothesis and expected impact."
+
+  session: editor
+    prompt: "Apply proposed change to research/train.py: {proposal}"
+
+  try:
+    let run_output = session: runner
+      prompt: """
+      1. cd ../oneiron-ner-autoresearch/
+      2. git add research/train.py && git commit -m "autoresearch: {proposal}"
+      3. Launch Modal job:
+         modal run research/launch.py > run.log 2>&1 &
+         MODAL_PID=$!
+      4. Poll every 30s: api.flush() → check run.state + run.summary.get("smoke_abort")
+         - If crashed/failed: note early termination
+         - If smoke_abort=True: note smoke abort
+      5. Wait for process:
+         wait $MODAL_PID
+         EXIT_CODE=$?
+      6. Parse AUTORESEARCH_METRICS JSON from run.log (only after wait)
+      7. Append results.tsv row using: python -c "from research.launch import append_results_tsv; ..."
+      8. Return: { exit_code, run_state, smoke_abort, wb_summary, autoresearch_metrics }
+
+      METRIC AUTHORITY RULE:
+      - W&B summary + smoke_abort flag → authoritative for KEEP/REVERT decisions
+      - AUTORESEARCH_METRICS JSON from run.log → authoritative for archival in results.tsv
+      - If they disagree → log mismatch in results.tsv, mark run as suspicious
+      """
+      retry: 1
+
+    let verdict = resume: captain
+      prompt: "Evaluate result. Check alerts first. Compare composite to best. Decide: KEEP or REVERT?"
+      context: run_output
+
+    if **verdict says REVERT**:
+      session: runner
+        prompt: "cd ../oneiron-ner-autoresearch/ && git reset --hard HEAD~1 && git clean -fd"
+
+  catch as err:
+    session: runner
+      prompt: "cd ../oneiron-ner-autoresearch/ && git reset --hard HEAD~1 && git clean -fd"
+    resume: captain
+      prompt: "Log crash: {err}. Do not retry this exact config. Adjust and move on."
+
+output report = resume: captain
+  prompt: """
+  Write final report:
+  - Best config (full EXPERIMENT dict)
+  - Best composite score + per-metric breakdown
+  - All experiments tried (from results.tsv)
+  - Recommended next steps for Phase 2
+  """
