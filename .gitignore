@@ -19,5 +19,35 @@ venv/
 .DS_Store
 *.swp
 
+# Autoresearch
+results.tsv
+run.log
+.prose/
+
 # State tracking
 configs/.task_state.json
+
+# Environment
+.env
+
+# Temp/scratch directories
+tmp/
+tmp_*/
+.tmp_*/
+
+# Caches
+.ruff_cache/
+
+# Archive scratch (one-off scripts, not tracked)
+archive/scratch/
+
+# Task 8 data directories (large, managed locally)
+data/task8_batches/
+data/task8_output/
+data/task8_output_gpt/
+data/task8_merged/
+data/task8_pilot/
+data/task8_tmp/
+
+# Labeled data (HF LFS)
+data/labeled/
